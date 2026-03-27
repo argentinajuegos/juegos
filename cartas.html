@@ -163,6 +163,23 @@ const onlyDigits = s => (s||'').replace(/\D+/g,'');
 //  (menos cantidad = más difícil de hacer 3 iguales)
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(pasadorId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -415,14 +432,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     showGame();
     renderPrizeBar(); renderGrid(buildDeck());
 
+    // 1. Bloqueo manual del admin
+    const bloqueoC=await checkBloqueosAdmin(phone, CFG.pasador_id);
+    if(bloqueoC){
+      showGame();
+      document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled'));
+      endGame(false,'',{blocked:true, motivo:bloqueoC.motivo}); return;
+    }
     const reg = await fetchUltimoDeHoy(phone, fp);
     if(reg){
-      // Nube confirma → actualizar localStorage
       localStorage.setItem(localBlockKeyUser(phone,fp),'1');
       localStorage.setItem(localBlockKeyDevice(fp),'1');
       setTimeout(()=>{ document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled')); endGame(false,'',{blocked:true}); },120);
     } else {
-      // Nube dice libre → limpiar localStorage (admin reseteó)
       localStorage.removeItem(localBlockKeyUser(phone,fp));
       localStorage.removeItem(localBlockKeyDevice(fp));
     }

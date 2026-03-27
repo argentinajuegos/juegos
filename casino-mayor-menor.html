@@ -414,6 +414,23 @@ let confetiRAF = null;
 //    50 = 50/50 puro, 60 = un poco más fácil, 40 = más difícil
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const {data,error} = await sb
     .from('juegos_config')
@@ -596,6 +613,16 @@ async function iniciar(){
   }
 
   fingerprint=await getFingerprint();
+
+  // 1. Bloqueo manual del admin
+  const bloqueoMM=await checkBloqueosAdmin(usuario, CFG.pasador_id);
+  if(bloqueoMM){
+    mostrarJuego();
+    setMsg(`🚫 Acceso bloqueado${bloqueoMM.motivo?' — '+bloqueoMM.motivo:''}. Contactá al casino.`,'var(--red)');
+    bloquearJuego(); return;
+  }
+
+  // 2. Nube primero
   const jugado=await checkYaJugo(usuario,fingerprint);
 
   mostrarJuego();

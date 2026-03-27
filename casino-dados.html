@@ -261,6 +261,23 @@ let animEnCurso = false;
 //  ["Premio cara 1","Premio cara 2",...,"Premio cara 6"]
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const {data,error} = await sb
     .from('juegos_config')
@@ -392,29 +409,20 @@ async function iniciarJuego() {
   mostrarCara(null);
   actualizarHora();
 
-  // Nube primero → si libre limpiar localStorage
-  const jugoNube = await checkYaJugo(usuario,fingerprint);
-  if(jugoNube){
-    setPlayed(usuario,fingerprint); // confirmar en local
-  } else if(isPlayed(usuario,fingerprint)){
-    // Admin reseteó → limpiar
-    localStorage.removeItem(blockKey(usuario,fingerprint));
-  }
-  const jugo = jugoNube;
   const btn=document.getElementById('tirar-btn');
   const msg=document.getElementById('mensaje-premio');
   const btnWsp=document.getElementById('btn-wsp');
   btnWsp.style.display='none';
-
-  if(jugo){
-    btn.disabled=true;
-    const nombreReal=typeof jugo==='object'?jugo.usuario:usuario;
-    const premioReal=typeof jugo==='object'?jugo.premio:'—';
-    msg.textContent=`⛔ YA JUGASTE HOY COMO ${nombreReal.toUpperCase()} — PREMIO: ${premioReal}`;
-  } else {
-    btn.disabled=false;
-    msg.textContent='';
-  }
+  // 1. Bloqueo manual del admin
+  const bloqueoD=await checkBloqueosAdmin(usuario, CFG.pasador_id);
+  if(bloqueoD){ btn.disabled=true; msg.textContent=`🚫 ACCESO BLOQUEADO${bloqueoD.motivo?' — '+bloqueoD.motivo.toUpperCase():''}`;
+    window.scrollTo({top:0,behavior:'instant'}); return; }
+  // 2. Nube primero
+  const jugoNube = await checkYaJugo(usuario,fingerprint);
+  if(jugoNube){ setPlayed(usuario,fingerprint); btn.disabled=true;
+    msg.textContent=`⛔ YA JUGASTE HOY COMO ${jugoNube.usuario.toUpperCase()} — PREMIO: ${jugoNube.premio}`;
+  } else if(isPlayed(usuario,fingerprint)){ localStorage.removeItem(blockKey(usuario,fingerprint)); btn.disabled=false; msg.textContent='';
+  } else { btn.disabled=false; msg.textContent=''; }
   window.scrollTo({top:0,behavior:'instant'});
 }
 

@@ -168,6 +168,23 @@ const setMsg = html => { $('#msg').innerHTML = html; };
 //  level_times:    JSON [40,30,20]  (segundos por nivel)
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(pasadorId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -446,17 +463,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     input.classList.remove('error');
     fp=await deviceFingerprint();
     $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
+    // 1. Bloqueo manual del admin
+    const bloqueoMemo=await checkBloqueosAdmin(phone, CFG.pasador_id);
+    if(bloqueoMemo){
+      $('#welcome').style.display='none'; $('#headerGame').style.display='block';
+      $('#grid').innerHTML=''; $('#result').style.display='block';
+      $('#rTitle').textContent='🚫 Acceso bloqueado';
+      $('#rText').innerHTML=bloqueoMemo.motivo?`Motivo: <strong>${bloqueoMemo.motivo}</strong>`:'Contactá al pasador.';
+      $('#go').style.display='none'; return;
+    }
     already=await fetchUltimoDeHoy(phone,fp);
     if(already){
-      // Nube confirma → actualizar localStorage
       localStorage.setItem(localBlockKeyUser(phone,fp),'1');
       localStorage.setItem(localBlockKeyDevice(fp),'1');
     } else if(isLocalPlayed(phone,fp)){
-      // localStorage dice jugó pero nube dice libre → admin reseteó
       localStorage.removeItem(localBlockKeyUser(phone,fp));
       localStorage.removeItem(localBlockKeyDevice(fp));
     }
-    const blockedLocal=false; // siempre basarse en nube
+    const blockedLocal=false;
     $('#welcome').style.display='none'; $('#headerGame').style.display='block';
     if(already){
       const quien=already?.usuario||phone, premio=already?.premio||'—';

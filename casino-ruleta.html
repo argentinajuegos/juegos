@@ -343,6 +343,23 @@ function buildStars() {
 //  prob = % de probabilidad. 0 = nunca sale (aparece en ruleta visual)
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -501,10 +518,21 @@ function angleForIdx(idx) {
 }
 
 async function doSpin() {
-  // Bloqueo triple: flag, botón y premioYaJugado
   if(isSpinning || premioYaJugado) return;
+  // Re-verificar nube antes de girar — por si recargó durante la animación
+  const recheck = await checkYaJugo(username, fingerprint);
+  if(recheck) {
+    premioYaJugado = recheck.premio || '—';
+    $('spinBtn').disabled = true;
+    $('spinBtn').style.opacity = '0.3';
+    $('spinBtn').textContent = '✅ Ya giraste hoy';
+    $('spinBtn').removeEventListener('click', doSpin);
+    $('resultBox').style.display = 'block';
+    $('resultBox').querySelector('.result-title').textContent = '✅ Ya jugaste hoy';
+    $('resultText').textContent = `Resultado: ${recheck.premio}`;
+    return;
+  }
   isSpinning = true;
-  // Remover listener para que NO se pueda volver a llamar nunca
   $('spinBtn').removeEventListener('click', doSpin);
   $('spinBtn').disabled = true;
   $('spinBtn').style.opacity = '0.3';
@@ -637,21 +665,36 @@ async function startGame() {
   drawWheel();
 
   // Verificar si ya jugó
+  // 1. Bloqueo manual del admin
+  const bloqueo = await checkBloqueosAdmin(username, CFG.pasador_id);
+  if(bloqueo) {
+    premioYaJugado = 'bloqueado';
+    $('spinBtn').disabled = true; $('spinBtn').style.opacity='0.3';
+    $('spinBtn').textContent = '🚫 Bloqueado';
+    $('spinBtn').removeEventListener('click', doSpin);
+    const rb = $('resultBox'); rb.style.display='block';
+    rb.querySelector('.result-title').textContent = '🚫 Acceso bloqueado';
+    $('resultText').textContent = bloqueo.motivo?`Motivo: ${bloqueo.motivo}`:'Contactá al casino.';
+    $('waReclamar').style.display='none'; return;
+  }
+  // 2. Nube primero
   const yaJugo = await checkYaJugo(username, fingerprint);
-  if(isPlayed(username, fingerprint) || yaJugo) {
-    const premio = yaJugo?.premio || '—';
+  if(yaJugo) {
+    const premio = yaJugo.premio || '—';
     premioYaJugado = premio;
-    $('spinBtn').disabled = true;
-    $('spinBtn').style.opacity = '0.3';
+    setPlayed(username, fingerprint);
+    $('spinBtn').disabled = true; $('spinBtn').style.opacity='0.3';
     $('spinBtn').textContent = '✅ Ya giraste hoy';
     $('spinBtn').removeEventListener('click', doSpin);
     $('resultText').textContent = `Ya jugaste hoy. Resultado: ${premio}`;
-    const rb = $('resultBox');
-    rb.style.display = 'block';
+    const rb = $('resultBox'); rb.style.display='block';
     rb.querySelector('.result-title').textContent = '✅ Ya jugaste hoy';
     const msg = `Hola! Soy el usuario ${username}. Ya jugué hoy en ${CASINO_NOMBRE}.`;
     $('waReclamar').href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
     return;
+  } else if(isPlayed(username, fingerprint)) {
+    localStorage.removeItem(blockKeyUser(username, fingerprint));
+    localStorage.removeItem(blockKeyDev(fingerprint));
   }
 }
 

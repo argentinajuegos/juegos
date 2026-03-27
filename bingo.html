@@ -206,6 +206,23 @@ function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.rando
 //  base_if_lose:  número (ej: 500)
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(pasadorId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -518,9 +535,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     fp=await deviceFingerprint();
     $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
 
+    // 1. Bloqueo manual del admin
+    const blouqeoBingo=await checkBloqueosAdmin(phone, CFG.pasador_id);
+    if(blouqeoBingo){
+      $('#welcome').style.display='none'; $('#game').style.display='block';
+      $('#stepSelect').style.display='none'; $('#stepPlay').style.display='block';
+      showResult('🚫 Acceso bloqueado', blouqeoBingo.motivo?`Motivo: <strong>${blouqeoBingo.motivo}</strong>`:'Contactá al pasador.',0);
+      return;
+    }
     const last=await fetchUltimoDeHoy(phone,fp);
     if(last){
-      // Nube confirma → actualizar localStorage
       localStorage.setItem(localBlockKeyUser(phone,fp),'1');
       localStorage.setItem(localBlockKeyDevice(fp),'1');
       $('#welcome').style.display='none'; $('#game').style.display='block';
@@ -529,7 +553,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       showResult('✅ Ya jugaste hoy',`Jugaste como <strong>${phone}</strong> y tu último premio fue <strong>${last?.premio||money(0)}</strong>.<br>Volvé mañana.`,0);
       return;
     } else if(isLocalPlayed(phone,fp)){
-      // localStorage dice jugó pero nube dice libre → admin reseteó
       localStorage.removeItem(localBlockKeyUser(phone,fp));
       localStorage.removeItem(localBlockKeyDevice(fp));
     }

@@ -416,6 +416,23 @@ function calcStepSurv() {
   );
 }
 
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const {data,error} = await sb.from('juegos_config').select('*').eq('pasador_id',casinoId).eq('juego',JUEGO).eq('activo',true).single();
   if (error||!data) return null;
@@ -742,19 +759,18 @@ $('#btn-continuar').addEventListener('click', async() => {
   startClock(); go(P2);
   chancesLeft=MAX_CHANCES; renderChips(); resetRound();
 
-  // Nube primero → reset del admin funciona
+  // 1. Bloqueo manual del admin
+  const bloqueoG=await checkBloqueosAdmin(usuario, CFG.pasador_id);
+  if(bloqueoG){ lockAll();
+    const sEl=document.querySelector('.estado')||document.querySelector('#estado')||document.querySelector('.msg');
+    if(sEl) sEl.textContent=`🚫 Acceso bloqueado${bloqueoG.motivo?' — '+bloqueoG.motivo:''}`;
+    return; }
+  // 2. Nube primero
   try{
     const jug=await checkYaJugo(usuario,fingerprint);
-    if(jug){
-      // Nube confirma → actualizar localStorage
-      setLocalLock(jug.premio,jug.usuarioReal);
-      blockToday(jug.premio,jug.usuarioReal); return;
-    } else {
-      // Nube dice libre → limpiar localStorage (admin reseteó)
-      try{ localStorage.removeItem(LOCK_KEY()); }catch{}
-    }
+    if(jug){ setLocalLock(jug.premio,jug.usuarioReal); blockToday(jug.premio,jug.usuarioReal); return;
+    } else { try{ localStorage.removeItem(LOCK_KEY()); }catch{} }
   }catch(e){
-    // Fallback: usar localStorage si falla la nube
     const lk=readLocalLock();
     if(lk){ blockToday(lk.prize,lk.user); return; }
   }

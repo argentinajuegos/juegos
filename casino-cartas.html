@@ -226,6 +226,23 @@ function buildStars() {
 //  cantidad = cuántas cartas de ese tipo hay en el mazo
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -405,10 +422,17 @@ async function startGame() {
   renderPrizesGrid('prizesGridGame');
   loadCards();
 
-  // Verificar nube PRIMERO — reset del admin tiene efecto inmediato
+  // 1. Bloqueo manual del admin
+  const bloqueoC=await checkBloqueosAdmin(username, CFG.pasador_id);
+  if(bloqueoC){
+    document.querySelectorAll('.card').forEach(c=>{ c.classList.add('disabled'); c.onclick=null; });
+    $('resultTitle').textContent='🚫 Acceso bloqueado';
+    $('resultPrize').textContent=bloqueoC.motivo?`Motivo: ${bloqueoC.motivo}`:'Contactá al casino.';
+    $('resultBox').style.display='block'; $('waReclamar').style.display='none'; return;
+  }
+  // 2. Nube primero
   const yaJugo=await checkYaJugo(username,fingerprint);
   if(yaJugo){
-    // Nube confirma → actualizar localStorage
     setPlayed(username,fingerprint);
     const premio=yaJugo?.premio||'—';
     document.querySelectorAll('.card').forEach(c=>{ c.classList.add('disabled'); c.onclick=null; });
@@ -418,7 +442,6 @@ async function startGame() {
     const msg=`Hola! Soy el usuario ${username}. Ya jugué hoy en ${CASINO_NOMBRE}.`;
     $('waReclamar').href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
   } else if(isPlayed(username,fingerprint)){
-    // localStorage dice jugó pero nube dice libre (admin reseteó) → limpiar
     localStorage.removeItem(blockKeyUser(username,fingerprint));
     localStorage.removeItem(blockKeyDev(fingerprint));
   }

@@ -370,6 +370,23 @@ const basePorMinas = m => m >= BASE_ZERO_FROM ? 0 : 100 * m;
 const topePorMinas = m => CAP_POR_MINAS[m] || 5000;
 const toMoney = n => '$' + Number(Math.round(n)).toLocaleString('es-AR');
 
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(casinoId) {
   const {data,error} = await sb.from('juegos_config').select('*').eq('pasador_id',casinoId).eq('juego',JUEGO).eq('activo',true).single();
   if (error||!data) return null;
@@ -715,20 +732,29 @@ $('#btn-continuar').addEventListener('click', async()=>{
   $('#input-user').classList.remove('error');
   usuario=name;
 
-  // Verificar nube PRIMERO — reset del admin tiene efecto inmediato
+  // 1. Bloqueo manual del admin
+  const bloqueoM=await checkBloqueosAdmin(usuario, CFG.pasador_id);
+  if(bloqueoM){
+    $('#hud-user').textContent=usuario;
+    startClock(); go(P2); initGame();
+    $('#modal-title').textContent='🚫 Acceso bloqueado';
+    $('#modal-msg').innerHTML=bloqueoM.motivo?`Motivo: <b>${bloqueoM.motivo}</b>`:'Contactá al casino.';
+    $('#modal-wsp').style.display='none';
+    overlay.style.display='flex';
+    $('#modal-close').textContent='OK';
+    $('#modal-close').onclick=()=>{ overlay.style.display='none'; go(P1); };
+    return;
+  }
+  // 2. Nube primero
   try {
     const jug=await checkYaJugo(usuario,fingerprint);
     if(jug){
       setLocalLock(jug.premio,jug.usuarioReal);
-      // Mostrar bloqueo SIN ir a P2
       $('#hud-user').textContent=usuario;
       startClock(); go(P2); initGame();
       blockToday(jug.premio,jug.usuarioReal); return;
-    } else {
-      try{ localStorage.removeItem(LOCK_KEY()); }catch{}
-    }
+    } else { try{ localStorage.removeItem(LOCK_KEY()); }catch{} }
   }catch(e){
-    // Fallback localStorage
     const lk=readLocalLock();
     if(lk){
       $('#hud-user').textContent=usuario;
@@ -736,8 +762,6 @@ $('#btn-continuar').addEventListener('click', async()=>{
       blockToday(lk.prize,lk.user); return;
     }
   }
-
-  // No está bloqueado — ir al juego
   $('#hud-user').textContent=usuario;
   startClock(); go(P2); initGame();
 });

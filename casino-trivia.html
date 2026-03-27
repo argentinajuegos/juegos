@@ -682,6 +682,17 @@ function setDailyLockUI(premio, usuarioMostrado){
    y aplica el bloqueo visual si corresponde. */
 async function applyDailyLockUI(currentUser){
   await deviceReady;
+  // 1. Bloqueo manual del admin
+  if(currentUser && typeof CFG !== 'undefined' && CFG?.pasador_id) {
+    const bloqueoT=await checkBloqueosAdmin(currentUser, CFG.pasador_id);
+    if(bloqueoT){
+      state.gameOver=true; btnSpin.disabled=true; btnBegin.disabled=true;
+      endBanner.classList.remove('hidden');
+      endBanner.innerHTML=`<div class="pill" style="border-color:#ef4444">🚫 Acceso bloqueado${bloqueoT.motivo?' — '+bloqueoT.motivo:''}. Contactá al casino.</div>`;
+      return true;
+    }
+  }
+  // 2. Nube + limpiar localStorage si libre
   let jugoFP   = await yaJugoHoyPorFingerprint();
   let jugoUser = currentUser ? await yaJugoHoy(currentUser) : null;
 
@@ -1990,6 +2001,23 @@ function forceStartUI(){
   usernameInput.value=''; btnStart.disabled=true;
 }
 
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 document.addEventListener('DOMContentLoaded', async ()=>{
   forceStartUI();
 

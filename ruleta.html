@@ -141,6 +141,23 @@ const setMsg = html => { $('#msg').innerHTML = html; };
 //  (orden en que aparecen los segmentos en la ruleta)
 //  activo: true/false
 // ════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════
+//  VERIFICAR BLOQUEO MANUAL DEL ADMIN
+// ════════════════════════════════════════════════════
+async function checkBloqueosAdmin(usuario, pasadorId) {
+  try {
+    const hoy = new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
+    const {data, error} = await sb.from('bloqueos')
+      .select('telefono,pasador_id,hasta,motivo')
+      .eq('telefono', usuario)
+      .or(`pasador_id.eq.${pasadorId},pasador_id.is.null`)
+      .gte('hasta', hoy)
+      .limit(1);
+    if(error || !data || !data.length) return null;
+    return data[0];
+  } catch(e) { return null; }
+}
 async function loadConfig(pasadorId) {
   const { data, error } = await sb
     .from('juegos_config')
@@ -389,15 +406,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     input.classList.remove('error');
     fp=await deviceFingerprint();
     $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
+    // 1. Bloqueo manual del admin
+    const bloqueoR=await checkBloqueosAdmin(phone, CFG.pasador_id);
+    if(bloqueoR){
+      $('#welcome').style.display='none'; $('#headerGame').style.display='block'; $('#game').style.display='block';
+      setMsg(`🚫 Tu acceso está bloqueado${bloqueoR.motivo?' — '+bloqueoR.motivo:'. Contactá al pasador.'}`);
+      $('#spin').disabled=true; return;
+    }
     ultimoHoy=await fetchUltimoDeHoy(phone,fp);
     $('#welcome').style.display='none'; $('#headerGame').style.display='block'; $('#game').style.display='block';
     if(ultimoHoy){
-      // Nube confirma que jugó → actualizar localStorage
       localStorage.setItem(blockKeyUser(phone,fp),'1');
       localStorage.setItem(blockKeyDev(fp),'1');
       setMsg(textoYaJugo(phone,ultimoHoy)); $('#spin').disabled=true;
     } else {
-      // Nube dice libre → limpiar localStorage por si el admin reseteó
       localStorage.removeItem(blockKeyUser(phone,fp));
       localStorage.removeItem(blockKeyDev(fp));
       setMsg('Listo, tocá <strong>Girar</strong>.');
