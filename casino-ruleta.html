@@ -1,0 +1,706 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+  <title>Ruleta Casino</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #f0c040;
+      --gold2: #ffd700;
+      --gold3: #b8860b;
+      --dark: #070500;
+      --dark2: #0f0b00;
+      --dark3: #1a1200;
+      --panel: #120e00;
+      --edge: #3a2a00;
+      --edge2: #5a4200;
+      --text: #fff8e7;
+      --muted: #a08040;
+      --green: #25D366;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, #1a1200 0%, #070500 60%, #000 100%);
+      color: var(--text);
+      font-family: 'Inter', Arial, sans-serif;
+    }
+
+    /* Partículas de fondo */
+    .bg-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-stars span {
+      position: absolute; width: 2px; height: 2px; border-radius: 50%;
+      background: var(--gold); opacity: 0;
+      animation: twinkle var(--d, 3s) var(--delay, 0s) infinite;
+    }
+    @keyframes twinkle { 0%,100%{opacity:0} 50%{opacity:.7} }
+
+    .wrap { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+
+    /* ── LOADING ── */
+    #loadingScreen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 85vh; gap: 16px;
+    }
+    .spin-loader {
+      width: 48px; height: 48px;
+      border: 4px solid var(--edge2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-txt { color: var(--muted); font-size: 13px; letter-spacing: 1px; }
+
+    /* ── HEADER ── */
+    .casino-name {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(22px, 6vw, 34px);
+      font-weight: 900;
+      color: var(--gold);
+      text-align: center;
+      text-shadow: 0 0 20px rgba(240,192,64,.6), 0 0 40px rgba(240,192,64,.3);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .casino-sub {
+      text-align: center; font-size: 12px; color: var(--muted);
+      letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px;
+    }
+    .crown { font-size: 28px; display: block; text-align: center; margin-bottom: 8px;
+      animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+    /* ── PANEL ── */
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--dark2));
+      border: 1px solid var(--edge2);
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(240,192,64,.08), 0 20px 60px rgba(0,0,0,.6);
+      padding: 24px 20px;
+      margin-bottom: 16px;
+    }
+    .panel-gold {
+      background: linear-gradient(180deg, #1a1400, #0f0b00);
+      border: 1px solid var(--gold3);
+      box-shadow: 0 0 30px rgba(240,192,64,.15);
+    }
+
+    /* ── INPUT ── */
+    .inp {
+      width: 100%; background: var(--dark3);
+      border: 1px solid var(--edge2); border-radius: 12px;
+      padding: 14px 16px; color: var(--text); font-size: 15px;
+      font-weight: 700; outline: none; text-align: center;
+      letter-spacing: 1px; font-family: 'Inter', sans-serif;
+    }
+    .inp::placeholder { color: var(--muted); font-weight: 600; }
+    .inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240,192,64,.15); }
+    .inp.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
+
+    /* ── BOTONES ── */
+    .btn-gold {
+      width: 100%; padding: 15px; border-radius: 14px; border: 0;
+      background: linear-gradient(135deg, var(--gold2), var(--gold3));
+      color: #0a0600; font-weight: 900; font-size: 16px;
+      cursor: pointer; letter-spacing: 1px;
+      box-shadow: 0 0 20px rgba(255,215,0,.3), 0 4px 20px rgba(0,0,0,.5);
+      transition: all .2s; font-family: 'Cinzel', serif;
+      text-transform: uppercase;
+    }
+    .btn-gold:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(255,215,0,.5), 0 8px 30px rgba(0,0,0,.6);
+    }
+    .btn-gold:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    .btn-wa {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; border-radius: 14px; border: 0;
+      background: var(--green); color: #fff; font-weight: 800; font-size: 15px;
+      text-decoration: none; cursor: pointer;
+      box-shadow: 0 0 20px rgba(37,211,102,.25);
+      transition: all .2s; font-family: 'Inter', sans-serif;
+    }
+    .btn-wa:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(37,211,102,.4); }
+
+    /* ── INFO HUD ── */
+    .hud {
+      display: flex; gap: 10px; margin-bottom: 16px;
+    }
+    .hud-item {
+      flex: 1; background: var(--dark3); border: 1px solid var(--edge);
+      border-radius: 10px; padding: 8px 10px; text-align: center;
+    }
+    .hud-label { font-size: 10px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+    .hud-val { font-size: 13px; font-weight: 800; color: var(--gold); margin-top: 2px; word-break: break-all; }
+
+    /* ── RULETA ── */
+    .wheel-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 0; margin: 8px 0;
+    }
+    .arrow-wrap { position: relative; width: 100%; display: flex; justify-content: center; margin-bottom: -6px; z-index: 2; }
+    .arrow {
+      width: 0; height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 28px solid #ef4444;
+      filter: drop-shadow(0 4px 8px rgba(239,68,68,.6));
+    }
+    canvas#wheel {
+      width: min(80vw, 340px); height: min(80vw, 340px);
+      border: 10px solid var(--gold);
+      border-radius: 50%;
+      display: block;
+      box-shadow: 0 0 40px rgba(240,192,64,.4), 0 0 80px rgba(240,192,64,.15), inset 0 0 40px rgba(0,0,0,.5);
+    }
+
+    /* ── RESULTADO ── */
+    .result-box {
+      display: none; margin-top: 16px;
+      background: linear-gradient(180deg, #1a1200, #0f0b00);
+      border: 1px solid var(--gold3); border-radius: 16px;
+      padding: 20px; text-align: center;
+      box-shadow: 0 0 30px rgba(240,192,64,.15);
+      animation: popIn .4s cubic-bezier(.2,1,.2,1);
+    }
+    @keyframes popIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+    .result-title { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 900; color: var(--gold); margin-bottom: 8px; }
+    .result-prize { font-size: 26px; font-weight: 900; color: #fff; margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(255,255,255,.3); }
+
+    /* ── INFO BOX ABAJO ── */
+    .info-box {
+      background: linear-gradient(135deg, #1a1200, #0f0800);
+      border: 1px solid var(--gold3); border-radius: 16px;
+      padding: 16px; text-align: center; margin-bottom: 16px;
+    }
+    .info-title { font-family: 'Cinzel', serif; font-size: 15px; color: var(--gold); margin-bottom: 6px; font-weight: 700; }
+    .info-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── CONFETTI ── */
+    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 99; display: none; }
+
+    /* ── PREMIOS LIST ── */
+    .prizes-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 16px;
+    }
+    .prize-pill {
+      padding: 8px 10px; border-radius: 10px; text-align: center;
+      font-size: 12px; font-weight: 700; color: #000;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    @media (min-width: 900px) {
+      body::after {
+        content: "Diseñado para móvil. Abrilo desde el celular.";
+        position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,.92); color: var(--gold); font-size: 18px; font-weight: 800;
+        font-family: 'Cinzel', serif; letter-spacing: 2px; z-index: 999;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Fondo estrellado -->
+<div class="bg-stars" id="bgStars"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti" width="0" height="0"></canvas>
+
+<div class="wrap">
+
+  <!-- LOADING -->
+  <div id="loadingScreen">
+    <div class="spin-loader"></div>
+    <p class="loading-txt">Cargando casino...</p>
+  </div>
+
+  <!-- INICIO -->
+  <div id="userSection" style="display:none">
+    <span class="crown">👑</span>
+    <div class="casino-name" id="casinoNameWelcome">CASINO</div>
+    <div class="casino-sub">Ruleta — Girá y ganás</div>
+
+    <div class="panel panel-gold">
+      <div style="margin-bottom:14px">
+        <input id="usernameInput" class="inp" placeholder="Ingresá tu usuario" autocomplete="off"/>
+      </div>
+      <button class="btn-gold" onclick="startGame()">🎰 ENTRAR AL CASINO 🎰</button>
+    </div>
+
+    <div class="info-box">
+      <div class="info-title" id="infoTitle">💛 CASINO 💛</div>
+      <div class="info-sub">LÍNEA ACTIVA 24HS · TODOS LOS PREMIOS SE PAGAN AL INSTANTE</div>
+      <div style="margin-top:12px">
+        <a class="btn-wa" id="waContacto" href="#" target="_blank">
+          📞 Contactanos por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:16px">
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;letter-spacing:1px">PREMIOS POSIBLES</div>
+      <div class="prizes-grid" id="prizesGrid"></div>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div id="wheelSection" style="display:none">
+    <span class="crown">👑</span>
+    <div class="casino-name" id="casinoNameGame">CASINO</div>
+    <div class="casino-sub">Ruleta</div>
+
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">Usuario</div>
+        <div class="hud-val" id="userLabel">—</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">Fecha y hora</div>
+        <div class="hud-val" id="fechaHoraActual">—</div>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:16px">
+      <div class="wheel-wrap">
+        <div class="arrow-wrap"><div class="arrow"></div></div>
+        <canvas id="wheel" width="500" height="500"></canvas>
+      </div>
+      <div style="margin-top:14px">
+        <button id="spinBtn" class="btn-gold">🎲 GIRAR LA RULETA 💫</button>
+      </div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-title">🎉 ¡FELICIDADES!</div>
+      <div class="result-prize" id="resultText">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">📸 Sacá captura y reclamá tu premio</div>
+      <a class="btn-wa" id="waReclamar" href="#" target="_blank">💬 Reclamar premio</a>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES — único lugar donde tocar código
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO_NOMBRE = '', ADMIN_WA = '';
+const JUEGO = 'ruleta';
+
+// Premios default — idénticos al original
+const PREMIOS_DEFAULT = [
+  { label: "20% BONO 🪙",      color: "#f1c40f", prob: 30 },
+  { label: "50% BONO 🏆",      color: "#d35400", prob: 26 },
+  { label: "OTRO GIRO 🔁",     color: "#7f8c8d", prob: 0  },
+  { label: "2.500 GRATIS 💵",  color: "#1abc9c", prob: 16 },
+  { label: "5.000 GRATIS 💰",  color: "#2980b9", prob: 6  },
+  { label: "10.000 GRATIS 💎", color: "#27ae60", prob: 1  },
+  { label: "100% BONO 👑",     color: "#8e44ad", prob: 21 },
+  { label: "50.000 GRATIS 💛", color: "#c0392b", prob: 0  }
+];
+
+let PREMIOS = [...PREMIOS_DEFAULT];
+let isSpinning = false;
+let username = '';
+let fingerprint = '';
+let premioYaJugado = null;
+
+const $ = id => document.getElementById(id);
+
+// ════════════════════════════════════════════════════
+//  FONDO ESTRELLADO
+// ════════════════════════════════════════════════════
+function buildStars() {
+  const cont = $('bgStars');
+  for(let i=0; i<60; i++){
+    const s = document.createElement('span');
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*4}s;--delay:${Math.random()*4}s`;
+    cont.appendChild(s);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  premios_odds: JSON array
+//  [{"label":"20% BONO 🪙","color":"#f1c40f","prob":30},...]
+//  prob = % de probabilidad. 0 = nunca sale (aparece en ruleta visual)
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(casinoId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', casinoId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  // Normalizar premios_odds (array en casino es diferente a quiniela — tiene label+color+prob)
+  if (!data.premios_odds) {
+    data.premios_odds = PREMIOS_DEFAULT;
+  } else if (typeof data.premios_odds === 'string') {
+    try { data.premios_odds = JSON.parse(data.premios_odds); }
+    catch { data.premios_odds = PREMIOS_DEFAULT; }
+  }
+
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA AR
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz = 'America/Argentina/Buenos_Aires', now = new Date();
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone:tz, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+  }).formatToParts(now);
+  const get = t => parts.find(p => p.type === t).value;
+  const fecha = `${get('year')}-${get('month')}-${get('day')}`;
+  return {
+    fecha,
+    horaISO: `${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,
+    horaUTC: now.toISOString(),
+    display: `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT (SHA-256)
+// ════════════════════════════════════════════════════
+async function getFingerprint() {
+  try {
+    const txt = [navigator.userAgent, navigator.platform, screen.width,
+      screen.height, Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function blockKeyUser(u, fp) { const {fecha}=nowAR(); return `casino:${fecha}:${CASINO_NOMBRE}:${JUEGO}:user:${u}:${fp}`; }
+function blockKeyDev(fp)     { const {fecha}=nowAR(); return `casino:${fecha}:${CASINO_NOMBRE}:${JUEGO}:dev:${fp}`; }
+function setPlayed(u, fp)    { localStorage.setItem(blockKeyUser(u,fp),'1'); localStorage.setItem(blockKeyDev(fp),'1'); }
+function isPlayed(u, fp)     { return !!localStorage.getItem(blockKeyUser(u,fp)) || !!localStorage.getItem(blockKeyDev(fp)); }
+
+async function checkYaJugo(user, fp) {
+  const {fecha} = nowAR();
+  const {data,error} = await sb.from('giros')
+    .select('usuario,premio')
+    .eq('fecha', fecha)
+    .eq('pasador_id', CFG.pasador_id)
+    .eq('juego', JUEGO)
+    .or(`usuario.eq.${user},fingerprint.eq.${fp}`)
+    .order('id', {ascending:false})
+    .limit(1);
+  if(error) return null;
+  return data?.[0] || null;
+}
+
+async function registrarGiro(user, fp, premio) {
+  const {fecha, horaISO, horaUTC} = nowAR();
+  await sb.from('giros').insert([{
+    usuario: user, fingerprint: fp, premio, fecha,
+    hora: horaISO, hora_local: horaISO, hora_utc: horaUTC,
+    pasador_id: CFG.pasador_id, casino: CASINO_NOMBRE, juego: JUEGO
+  }]);
+}
+
+// ════════════════════════════════════════════════════
+//  CANVAS DE LA RULETA — igual al original + mejoras
+// ════════════════════════════════════════════════════
+const canvas = $('wheel');
+const ctx = canvas.getContext('2d');
+let currentRotation = 0;
+
+function drawWheel(rotation = 0, highlightIdx = null) {
+  const W = canvas.width, H = canvas.height, R = W/2;
+  ctx.clearRect(0,0,W,H);
+  const arc = 2*Math.PI / PREMIOS.length;
+
+  ctx.save(); ctx.translate(R,R); ctx.rotate(rotation); ctx.translate(-R,-R);
+
+  PREMIOS.forEach((p,i) => {
+    const start = i*arc, end = start+arc;
+    // Sector
+    ctx.beginPath(); ctx.moveTo(R,R);
+    ctx.fillStyle = (highlightIdx!==null && i!==highlightIdx) ? '#1a1a1a' : p.color;
+    ctx.arc(R,R,R-4,start,end); ctx.fill();
+    // Borde del sector
+    ctx.beginPath(); ctx.moveTo(R,R);
+    ctx.arc(R,R,R-4,start,end); ctx.closePath();
+    ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=2; ctx.stroke();
+    // Texto
+    ctx.save();
+    ctx.translate(R,R); ctx.rotate(start+arc/2);
+    ctx.textAlign='right'; ctx.fillStyle='white';
+    ctx.font=`bold ${Math.min(18, Math.floor(R*.085))}px Inter,Arial`;
+    ctx.shadowColor='rgba(0,0,0,.8)'; ctx.shadowBlur=4;
+    ctx.fillText(p.label, R-14, 6);
+    ctx.restore();
+  });
+
+  // Borde dorado
+  ctx.beginPath(); ctx.arc(R,R,R-4,0,2*Math.PI);
+  ctx.lineWidth=8; ctx.strokeStyle='#f0c040'; ctx.stroke();
+  // Centro dorado
+  ctx.beginPath(); ctx.arc(R,R,22,0,2*Math.PI);
+  ctx.fillStyle='#f0c040'; ctx.fill();
+  ctx.beginPath(); ctx.arc(R,R,16,0,2*Math.PI);
+  ctx.fillStyle='#0a0700'; ctx.fill();
+
+  // El ctx.restore() de la rotación global va ACÁ — ANTES del highlight
+  ctx.restore();
+
+  // Resalte ganador — dibujado DESPUÉS del restore, con rotación manual
+  if(highlightIdx!==null){
+    const start=highlightIdx*arc + rotation, end=start+arc;
+    ctx.save(); ctx.translate(R,R); ctx.translate(-R,-R);
+    ctx.beginPath(); ctx.moveTo(R,R); ctx.arc(R,R,R-4,start,end); ctx.closePath();
+    ctx.lineWidth=8; ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  LÓGICA DEL GIRO — animación pura en canvas (sin CSS transform)
+// ════════════════════════════════════════════════════
+function pickPremio() {
+  const total = PREMIOS.reduce((a,p)=>a+p.prob,0);
+  let r = Math.random()*total, acc = 0;
+  for(let i=0;i<PREMIOS.length;i++){ acc+=PREMIOS[i].prob; if(r<acc) return i; }
+  return 0;
+}
+
+// Calcula el ángulo exacto para que el segmento idx quede bajo la flecha (arriba = -PI/2)
+function angleForIdx(idx) {
+  const arc = 2*Math.PI / PREMIOS.length;
+  const center = idx*arc + arc/2;
+  return -Math.PI/2 - center;
+}
+
+async function doSpin() {
+  if(isSpinning || premioYaJugado) return;
+  isSpinning = true;
+  $('spinBtn').disabled = true;
+
+  const selectedIdx = pickPremio();
+  const target = angleForIdx(selectedIdx);
+
+  // Asegurar al menos 5 vueltas completas desde posición actual
+  const nowBase = currentRotation % (2*Math.PI);
+  let targetExact = nowBase + 5*2*Math.PI + (target - nowBase);
+  while(targetExact - nowBase < 5*2*Math.PI) targetExact += 2*Math.PI;
+
+  // Dos fases: acelera (D1) + desacelera (D2) — igual que ruleta quiniela
+  const D1 = 1200, D2 = 6600;
+  const midAngle = nowBase + (targetExact - nowBase) * 0.25;
+  const easeIn  = t => t*t;
+  const easeOut = t => 1 - Math.pow(1-t, 3);
+
+  // Fase 1: aceleración
+  await new Promise(resolve => {
+    const t0 = performance.now();
+    function step(t) {
+      const p = Math.min(1, (t-t0)/D1);
+      currentRotation = nowBase + (midAngle - nowBase) * easeIn(p);
+      drawWheel(currentRotation);
+      if(p < 1) requestAnimationFrame(step); else resolve();
+    }
+    requestAnimationFrame(step);
+  });
+
+  // Fase 2: desaceleración hasta el segmento exacto
+  await new Promise(resolve => {
+    const t1 = performance.now();
+    function step2(t) {
+      const p = Math.min(1, (t-t1)/D2);
+      currentRotation = midAngle + (targetExact - midAngle) * easeOut(p);
+      drawWheel(currentRotation);
+      if(p < 1) requestAnimationFrame(step2); else resolve();
+    }
+    requestAnimationFrame(step2);
+  });
+
+  // Fijar posición exacta y resaltar ganador
+  currentRotation = targetExact;
+  drawWheel(currentRotation, selectedIdx);
+
+  const premio = PREMIOS[selectedIdx];
+
+  // Mostrar resultado
+  $('resultText').textContent = premio.label;
+  const rb = $('resultBox');
+  rb.style.display = 'block';
+
+  const msg = `Hola! Soy el usuario ${username}. Gané ${premio.label} en la RULETA de ${CASINO_NOMBRE}. Quiero reclamar mi premio.`;
+  $('waReclamar').href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+
+  await registrarGiro(username, fingerprint, premio.label);
+  setPlayed(username, fingerprint);
+  premioYaJugado = premio.label;
+
+  if(premio.prob > 0) launchConfetti();
+  isSpinning = false;
+}
+
+// ════════════════════════════════════════════════════
+//  CONFETTI
+// ════════════════════════════════════════════════════
+function launchConfetti() {
+  const cvs = $('confetti'), ctx2 = cvs.getContext('2d');
+  const DPR = Math.max(1, window.devicePixelRatio||1);
+  cvs.style.display='block';
+  cvs.width=Math.floor(innerWidth*DPR); cvs.height=Math.floor(innerHeight*DPR);
+  const colors=['#f0c040','#ffd700','#fff','#ff6b35','#c084fc'];
+  const parts=Array.from({length:120},()=>({
+    x:Math.random()*cvs.width, y:-20,
+    r:3+Math.random()*5, vx:(-1+Math.random()*2)*DPR,
+    vy:(2+Math.random()*4)*DPR, rot:Math.random()*360, vr:(-3+Math.random()*6),
+    color:colors[Math.floor(Math.random()*colors.length)]
+  }));
+  const t0=performance.now();
+  function step(t){
+    ctx2.clearRect(0,0,cvs.width,cvs.height);
+    parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.05*DPR; p.rot+=p.vr;
+      ctx2.save(); ctx2.translate(p.x,p.y); ctx2.rotate(p.rot*Math.PI/180);
+      ctx2.fillStyle=p.color; ctx2.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx2.restore();
+    });
+    if(t-t0<3000) requestAnimationFrame(step);
+    else{ cvs.style.display='none'; ctx2.clearRect(0,0,cvs.width,cvs.height); }
+  }
+  requestAnimationFrame(step);
+}
+
+// ════════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════════
+function renderPrizesGrid() {
+  $('prizesGrid').innerHTML = PREMIOS.map(p=>`
+    <div class="prize-pill" style="background:${p.color};color:${isLight(p.color)?'#000':'#fff'}">
+      ${p.label}
+    </div>`).join('');
+}
+
+function isLight(hex) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000 > 128;
+}
+
+function updateClock() {
+  $('fechaHoraActual').textContent = nowAR().display;
+}
+
+// ════════════════════════════════════════════════════
+//  INICIAR JUEGO
+// ════════════════════════════════════════════════════
+async function startGame() {
+  const val = $('usernameInput').value.trim();
+  if(!val){ $('usernameInput').classList.add('error'); return; }
+  $('usernameInput').classList.remove('error');
+  username = val;
+
+  $('userSection').style.display='none';
+  $('wheelSection').style.display='block';
+  $('userLabel').textContent = username.toUpperCase();
+  updateClock(); setInterval(updateClock, 1000);
+  drawWheel();
+
+  // Verificar si ya jugó
+  const yaJugo = await checkYaJugo(username, fingerprint);
+  if(isPlayed(username, fingerprint) || yaJugo) {
+    const premio = yaJugo?.premio || '—';
+    premioYaJugado = premio;
+    $('spinBtn').disabled = true;
+    $('resultText').textContent = `Ya jugaste hoy. Resultado: ${premio}`;
+    const rb = $('resultBox');
+    rb.style.display = 'block';
+    rb.querySelector('.result-title').textContent = '✅ Ya jugaste hoy';
+    const msg = `Hola! Soy el usuario ${username}. Ya jugué hoy en ${CASINO_NOMBRE}.`;
+    $('waReclamar').href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+    return;
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  buildStars();
+
+  const casinoId = new URLSearchParams(window.location.search).get('p')
+    || new URLSearchParams(window.location.search).get('casino');
+
+  if(!casinoId) {
+    $('loadingScreen').innerHTML = `<div style="text-align:center;padding:30px">
+      <p style="font-size:32px;margin-bottom:12px">⚠️</p>
+      <p style="font-family:'Cinzel',serif;color:var(--gold);font-size:16px">Link inválido</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Pedile el link correcto a tu casino.</p>
+    </div>`;
+    return;
+  }
+
+  CFG = await loadConfig(casinoId);
+
+  if(!CFG) {
+    $('loadingScreen').innerHTML = `<div style="text-align:center;padding:30px">
+      <p style="font-size:32px;margin-bottom:12px">⚠️</p>
+      <p style="font-family:'Cinzel',serif;color:var(--gold);font-size:16px">Casino no encontrado</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">El link no es válido o el juego está inactivo.</p>
+    </div>`;
+    return;
+  }
+
+  // Aplicar config
+  CASINO_NOMBRE = CFG.nombre;
+  ADMIN_WA      = CFG.whatsapp;
+  PREMIOS       = CFG.premios_odds;
+
+  // Fingerprint
+  fingerprint = await getFingerprint();
+
+  // Pintar nombres
+  document.title = `${CASINO_NOMBRE} — Ruleta`;
+  ['casinoNameWelcome','casinoNameGame'].forEach(id=>{ const el=$(id); if(el) el.textContent=CASINO_NOMBRE; });
+  $('infoTitle').textContent = `💛 ${CASINO_NOMBRE} 💛`;
+  const waUrl = `https://wa.me/${ADMIN_WA}`;
+  $('waContacto').href = waUrl;
+
+  // Renderizar premios y ruleta
+  renderPrizesGrid();
+  drawWheel();
+
+  // Mostrar inicio
+  $('loadingScreen').style.display='none';
+  $('userSection').style.display='block';
+
+  // Botón girar
+  $('spinBtn').addEventListener('click', doSpin);
+
+  $('usernameInput').addEventListener('keydown', e => { if(e.key==='Enter') startGame(); });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Memotest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{ --panel:#0b1224; --panel2:#0a1226; --edge:#18254a; --text:#eaf1ff; --muted:#9fb0d8; --r:18px; --gold:#facc15; --good:#16a34a; --bad:#ef4444; --ink:#0b1224; }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:linear-gradient(180deg,#060b16 0%,#0b1220 60%,#08101d 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{min-height:100dvh}
+    .container{max-width:520px;margin:8px auto 16px;padding:12px}
+    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:var(--r);box-shadow:0 18px 40px rgba(0,0,0,.5);padding:14px}
+    .brandTitle{font-size:26px;font-weight:900;margin:0 0 6px}
+    .subline{font-size:14px;font-weight:900;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:900}
+    .pill-pass{background:rgba(34,255,122,.14);color:#22ff7a;border:1px solid rgba(34,255,122,.35)}
+    .status{font-weight:900;font-size:14px;opacity:.95;margin-top:6px;line-height:1.35}
+    #welcome{display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+    .input{width:100%;background:#0a1426;color:var(--text);border:1px solid var(--edge);border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;outline:none}
+    .input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:0;font-weight:900;letter-spacing:.2px;background:linear-gradient(135deg,#facc15,#60a5fa);color:#0b0f1a;cursor:pointer}
+    #headerGame{display:none;margin-bottom:10px}
+    .hud{display:flex;align-items:center;gap:10px;margin:10px 0}
+    .badge{background:#0c1830;border:1px solid #20345f;border-radius:12px;padding:8px 12px;font-weight:900}
+    .timebar{flex:1;height:14px;background:#14233f;border:1px solid #20345f;border-radius:999px;position:relative;overflow:hidden}
+    .timebar .fill{position:absolute;inset:0 0 0 auto;width:100%;background:linear-gradient(90deg,#22c55e,#facc15,#ef4444)}
+    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .card{aspect-ratio:1;border-radius:18px;background:#0d1a33;border:3px solid var(--gold);display:grid;place-items:center;font-size:34px;font-weight:900;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.35);transition:transform .08s ease}
+    .card:active{transform:scale(.98)}
+    .card.revealed{background:#ffffff;color:var(--ink);border-color:var(--gold)}
+    .card.matched{background:#0f2f1f;border-color:var(--good);color:#d2ffe6;cursor:default;filter:saturate(1.1)}
+    .card.locked{background:#101826;border-color:#253b6a;color:#6f84b5;cursor:default}
+    .msg{text-align:center;margin:10px 0 0;font-size:15px}
+    .result{margin-top:10px}
+    .result .box{border:1px solid #20345f;border-radius:16px;background:linear-gradient(180deg,#0f1f3a,#10324f);padding:14px;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.5)}
+    .result h3{margin:0 0 6px;font-size:18px}
+    .result p{margin:6px 0 12px;font-size:15px;color:#c9ffe5}
+    .wa{display:inline-block;background:#25D366;color:#072;font-weight:900;border-radius:12px;padding:12px 16px;text-decoration:none}
+    .modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;z-index:50}
+    .modal .box{background:linear-gradient(180deg,#0f1f3a,#10324f);border:1px solid #274171;border-radius:16px;padding:18px;max-width:420px;color:#eaf1ff;box-shadow:0 18px 40px rgba(0,0,0,.6)}
+    .modal h3{margin:0 0 10px}
+    .row{display:flex;gap:10px;margin-top:12px}
+    .btn2{flex:1;padding:12px;border-radius:12px;border:1px solid #274171;background:#0c1830;color:#eaf1ff;font-weight:900;cursor:pointer}
+    .btn2.primary{background:linear-gradient(135deg,#22c55e,#16a34a);color:#04110a;border:0}
+    .btn2.warn{background:linear-gradient(135deg,#facc15,#f59e0b);color:#1a1204;border:0}
+    .grid.locked{pointer-events:none}
+    .go{width:100%;padding:12px;border-radius:12px;border:0;font-weight:900;margin:8px 0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#04110a;cursor:pointer}
+    .card.keepGlow{outline:3px solid rgba(22,163,74,.6);outline-offset:2px;animation:pulseGreen 1.5s ease-in-out infinite}
+    @keyframes pulseGreen{0%,100%{outline-color:rgba(22,163,74,.4)}50%{outline-color:rgba(22,163,74,.8)}}
+    #loadingScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80dvh;gap:16px}
+    .spin{width:40px;height:40px;border:3px solid var(--edge);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .spin-txt{color:var(--muted);font-size:14px}
+  </style>
+</head>
+<canvas id="confetti" width="0" height="0" style="position:fixed;inset:0;pointer-events:none;z-index:60;display:none"></canvas>
+<body>
+  <div class="wrap">
+    <div class="container">
+
+      <!-- LOADING -->
+      <div id="loadingScreen">
+        <div class="spin"></div>
+        <p class="spin-txt">Cargando...</p>
+      </div>
+
+      <!-- INICIO -->
+      <div id="welcome" class="panel" style="display:none">
+        <div class="subline">
+          <span id="welcomeNombre">---</span>
+          <span class="pill pill-pass" id="welcomePasador">---</span>
+        </div>
+        <h1 class="brandTitle">MEMOTEST — Quiniela</h1>
+        <div class="status">Ingresá tu número y tocá <strong>Empezar</strong>.</div>
+        <div id="howto" class="status"></div>
+        <input id="phone" class="input" placeholder="Poné tu número" inputmode="numeric" />
+        <button id="start" class="btn">Empezar ▶</button>
+      </div>
+
+      <!-- HEADER EN JUEGO -->
+      <div id="headerGame" class="panel">
+        <h2 class="brandTitle">MEMOTEST — Quiniela</h2>
+        <div class="subline">
+          <span id="headerNombre">---</span>
+          <span class="pill pill-pass" id="headerPasador">---</span>
+        </div>
+        <div class="status">
+          <div id="statusNumber">👤 Número: —</div>
+          <div id="statusTime">🕒 —/—/— —:—:—</div>
+        </div>
+        <div id="levelInfo" class="status"></div>
+        <div class="hud">
+          <div class="badge">Nivel: <span id="level">1</span></div>
+          <div class="timebar"><div id="timeFill" class="fill"></div></div>
+        </div>
+        <button id="go" class="go">▶ Comenzar</button>
+        <div id="grid" class="grid"></div>
+        <p id="msg" class="msg"></p>
+        <div id="result" class="result" style="display:none">
+          <div class="box">
+            <h3 id="rTitle">—</h3>
+            <p id="rText">—</p>
+            <a id="waBtn" class="wa" target="_blank" rel="noopener">📲 Reclamar por WhatsApp</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="box">
+      <h3 id="mTitle">Nivel completado</h3>
+      <div id="mText" class="status" style="margin-top:6px"></div>
+      <div class="row">
+        <button id="mContinue" class="btn2 primary">Continuar y arriesgar</button>
+        <button id="mRetire" class="btn2 warn">Retirarme con esto</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES — único lugar donde tocar código
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO = '', ADMIN_WA = '';
+const JUEGO = 'memotest';
+
+// Defaults idénticos al original — configurables desde Supabase
+const PRIZE_BY_LEVEL_DEFAULT = { 1:500, 2:2500, 3:10000 };
+const LEVEL_TIMES_DEFAULT    = [40, 30, 20];
+
+let PRIZE_BY_LEVEL = {...PRIZE_BY_LEVEL_DEFAULT};
+let LEVEL_TIMES    = [...LEVEL_TIMES_DEFAULT];
+
+const REVEAL_MISMATCH_MS = 700;
+const TOTAL_PAIRS = 10;
+const ICONS = ['🍬','🍩','🍦','🥝','🥤','🍭','🍪','🍉','🧁','🍫','🍒','🍇','🍓'];
+
+let phone='', fp='', already=null;
+let level=1, pairsMatched=0, timer=null, timeLeft=0, timeTotal=0, deck=[];
+let roundActive=false, openRefs=[], mismatchHideTimer=null;
+
+const $ = s => document.querySelector(s);
+const money = n => '$' + Number(n).toLocaleString('es-AR');
+const onlyDigits = s => (s||'').replace(/\D+/g,'');
+const setMsg = html => { $('#msg').innerHTML = html; };
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  prize_by_level: JSON {"1":500,"2":2500,"3":10000}
+//  level_times:    JSON [40,30,20]  (segundos por nivel)
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(pasadorId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', pasadorId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  // Normalizar prize_by_level
+  if (!data.prize_by_level) {
+    data.prize_by_level = PRIZE_BY_LEVEL_DEFAULT;
+  } else if (typeof data.prize_by_level === 'string') {
+    try { data.prize_by_level = JSON.parse(data.prize_by_level); }
+    catch { data.prize_by_level = PRIZE_BY_LEVEL_DEFAULT; }
+  }
+
+  // Normalizar level_times
+  if (!data.level_times) {
+    data.level_times = LEVEL_TIMES_DEFAULT;
+  } else if (typeof data.level_times === 'string') {
+    try { data.level_times = JSON.parse(data.level_times); }
+    catch { data.level_times = LEVEL_TIMES_DEFAULT; }
+  }
+
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA ARGENTINA
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return { fecha, horaLocalNoTZ:`${fecha} ${get('hour')}:${get('minute')}:${get('second')}`, horaISOconOffset:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`, horaUTC:now.toISOString() };
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function tickClock() {
+  const dopt={timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',year:'numeric'};
+  const topt={timeZone:'America/Argentina/Buenos_Aires',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true};
+  $('#statusTime').textContent=`🕒 ${new Intl.DateTimeFormat('es-AR',dopt).format(new Date())}, ${new Intl.DateTimeFormat('es-AR',topt).format(new Date())}`;
+}
+setInterval(tickClock, 1000);
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function deviceFingerprint() {
+  try {
+    const txt=[navigator.userAgent,navigator.platform,screen.width,screen.height,Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function localBlockKeyUser(u,f){ const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:user:${u}:${f}`; }
+function localBlockKeyDevice(f){ const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:device:${f}`; }
+function setLocalPlayed(u,f){ localStorage.setItem(localBlockKeyUser(u,f),'1'); localStorage.setItem(localBlockKeyDevice(f),'1'); }
+function isLocalPlayed(u,f){ return !!localStorage.getItem(localBlockKeyUser(u,f))||!!localStorage.getItem(localBlockKeyDevice(f)); }
+
+async function fetchUltimoDeHoy(usuario, fingerp) {
+  const {fecha}=nowAR();
+  const {data,error}=await sb.from('giros').select('usuario,premio').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${usuario},fingerprint.eq.${fingerp}`).order('id',{ascending:false}).limit(1);
+  if(error){ console.warn('fetchUltimoDeHoy',error); return null; }
+  return data&&data[0]?data[0]:null;
+}
+
+async function registrarGiro({ usuario, fingerp, premio }) {
+  const {fecha,horaLocalNoTZ,horaISOconOffset,horaUTC}=nowAR();
+  const {error}=await sb.from('giros').insert([{usuario,fingerprint:fingerp,premio,fecha,hora:horaISOconOffset,hora_local:horaLocalNoTZ,hora_utc:horaUTC,pasador_id:CFG.pasador_id,casino:CASINO,juego:JUEGO}]);
+  if(error){ console.warn('insert error',error); }
+}
+
+// ════════════════════════════════════════════════════
+//  CONFETTI — idéntico al original
+// ════════════════════════════════════════════════════
+function launchConfetti(durationMs=2200) {
+  const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
+  const DPR=Math.max(1,window.devicePixelRatio||1);
+  const resize=()=>{ cvs.style.display='block'; cvs.width=Math.floor(innerWidth*DPR); cvs.height=Math.floor(innerHeight*DPR); };
+  resize(); let running=true;
+  const parts=Array.from({length:180},()=>({x:Math.random()*cvs.width,y:-Math.random()*cvs.height*0.3,r:3+Math.random()*4,vx:(-1+Math.random()*2)*0.8*DPR,vy:(2+Math.random()*3)*DPR,rot:Math.random()*Math.PI*2,vr:(-0.2+Math.random()*0.4),color:`hsl(${Math.floor(Math.random()*360)},90%,60%)`}));
+  const t0=performance.now();
+  function step(t){ const dt=16; ctx.clearRect(0,0,cvs.width,cvs.height); for(const p of parts){ p.x+=p.vx*dt/16; p.y+=p.vy*dt/16; p.rot+=p.vr*dt/16; p.vy+=0.015*DPR; if(p.x<0||p.x>cvs.width) p.vx*=-1; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.color; ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore(); } if(!running) return; if(t-t0<durationMs){ requestAnimationFrame(step); } else { running=false; cvs.style.display='none'; ctx.clearRect(0,0,cvs.width,cvs.height); } }
+  requestAnimationFrame(step);
+  window.addEventListener('resize',resize,{once:true});
+}
+
+// ════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════
+function setLevelInfo() {
+  const rows=[`1️⃣ ${LEVEL_TIMES[0]}s · ${money(PRIZE_BY_LEVEL[1])}`,`2️⃣ ${LEVEL_TIMES[1]}s · ${money(PRIZE_BY_LEVEL[2])}`,`3️⃣ ${LEVEL_TIMES[2]}s · ${money(PRIZE_BY_LEVEL[3])}`];
+  $('#levelInfo').innerHTML=`<div style="display:flex;gap:14px;flex-wrap:wrap">${rows.map(r=>`<span>${r}</span>`).join('')}</div>`;
+}
+
+function buildDeck() {
+  const items=ICONS.slice(0,TOTAL_PAIRS);
+  let d=[]; for(const s of items){ d.push(s,s); }
+  for(let i=d.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]]; }
+  return d;
+}
+
+function renderGrid(d) {
+  const g=$('#grid'); g.innerHTML='';
+  d.forEach((sym,idx)=>{ const el=document.createElement('button'); el.className='card'; el.dataset.i=idx; el.dataset.sym=sym; el.addEventListener('click',()=>onFlip(el)); g.appendChild(el); });
+}
+
+function updateHUD() { $('#level').textContent=level; }
+
+function startTimer(seconds) {
+  if(timer) clearInterval(timer);
+  timeTotal=seconds; timeLeft=seconds; updateTimebar();
+  timer=setInterval(()=>{ timeLeft=Math.max(0,+(timeLeft-0.1).toFixed(1)); updateTimebar(); if(timeLeft<=0){ clearInterval(timer); timer=null; perder(); } },100);
+}
+
+function updateTimebar() { $('#timeFill').style.width=(Math.max(0,Math.min(1,timeLeft/timeTotal))*100)+'%'; }
+
+function startLevel(n) {
+  level=n; pairsMatched=0; roundActive=false; openRefs=[];
+  if(mismatchHideTimer){ clearTimeout(mismatchHideTimer); mismatchHideTimer=null; }
+  updateHUD(); setLevelInfo();
+  deck=buildDeck(); renderGrid(deck);
+  document.getElementById('grid').classList.add('locked');
+  setMsg(`Nivel ${level} listo. Tocá <strong>"Comenzar"</strong>.`);
+  $('#go').style.display='block'; $('#go').disabled=false;
+  updateTimebar();
+}
+
+function beginRound() {
+  setMsg('¡A encontrar parejas!'); $('#go').style.display='none'; roundActive=true;
+  document.getElementById('grid').classList.remove('locked');
+  startTimer(LEVEL_TIMES[level-1]||10);
+}
+
+function clearMismatchTimer() { if(mismatchHideTimer){ clearTimeout(mismatchHideTimer); mismatchHideTimer=null; } }
+function revealedOpen() { return openRefs.filter(el=>el.isConnected&&el.classList.contains('revealed')&&!el.classList.contains('matched')); }
+function revealCard(el) { el.classList.add('revealed'); el.textContent=el.dataset.sym; }
+function hideCard(el)   { el.classList.remove('revealed'); el.textContent=''; }
+function matchCard(el)  { el.classList.add('matched'); el.textContent=el.dataset.sym; }
+
+function closeOldestOpen() {
+  if(openRefs.length){ const oldest=openRefs.shift(); if(oldest&&oldest.isConnected&&oldest.classList.contains('revealed')&&!oldest.classList.contains('matched')){ hideCard(oldest); } }
+}
+
+function handleAfterTwoOpen() {
+  const [a,b]=openRefs; const ok=a.dataset.sym===b.dataset.sym;
+  if(ok){ matchCard(a); matchCard(b); openRefs.length=0; pairsMatched++; if(pairsMatched>=TOTAL_PAIRS){ if(timer){ clearInterval(timer); timer=null; } ganar(); } }
+  else {
+    clearMismatchTimer();
+    mismatchHideTimer=setTimeout(()=>{ const current=revealedOpen(); if(current.length===2&&current[0]===a&&current[1]===b){ hideCard(a); hideCard(b); openRefs.length=0; } mismatchHideTimer=null; },REVEAL_MISMATCH_MS);
+  }
+}
+
+function onFlip(btn) {
+  if(!roundActive) return;
+  if(btn.classList.contains('matched')||btn.classList.contains('revealed')) return;
+  clearMismatchTimer();
+  if(openRefs.length===2) closeOldestOpen();
+  revealCard(btn); openRefs.push(btn);
+  if(openRefs.length===2) handleAfterTwoOpen();
+}
+
+function voltearTodas() { document.querySelectorAll('.card').forEach(c=>{ if(!c.classList.contains('revealed')) revealCard(c); }); }
+
+function perder() {
+  roundActive=false; document.getElementById('grid').classList.add('locked');
+  voltearTodas();
+  document.querySelectorAll('.card.matched').forEach(c=>c.classList.add('keepGlow'));
+  const monto=PRIZE_BY_LEVEL[1];
+  finalizar(`⏳ Se terminó el tiempo en Nivel ${level}.`,`Premio: <strong>${money(monto)}</strong>.`,monto,false);
+}
+
+function showModal({title,text,prize,onContinue,onRetire}) {
+  $('#mTitle').textContent=title;
+  $('#mText').innerHTML=`${text}<br><br>⚠️ Si continuás y perdés: cobrás <strong>${money(PRIZE_BY_LEVEL[1])}</strong> (base).<br>✅ Si te retirás ahora: cobrás <strong>${money(prize)}</strong>.`;
+  const modal=$('#modal'); modal.style.display='flex';
+  const mc=$('#mContinue'), mr=$('#mRetire');
+  const clean=()=>{ modal.style.display='none'; mc.onclick=null; mr.onclick=null; };
+  mc.onclick=()=>{ clean(); onContinue&&onContinue(); };
+  mr.onclick=()=>{ clean(); onRetire&&onRetire(); };
+}
+
+function ganar() {
+  const prizeNow=PRIZE_BY_LEVEL[level];
+  if(level<3){
+    showModal({
+      title:`✅ Nivel ${level} completado`,
+      text:`¡Bien! Alcanzaste el Nivel ${level}.`,
+      prize:prizeNow,
+      onContinue:()=>{ setMsg(`Vas por más. Preparando Nivel ${level+1}...`); startLevel(level+1); },
+      onRetire:()=>{ finalizar(`🏁 Te retiraste en Nivel ${level}.`,`Premio: <strong>${money(prizeNow)}</strong>.`,prizeNow,true); }
+    });
+  } else {
+    finalizar(`🏆 ¡Completaste el Nivel 3!`,`Premio: <strong>${money(PRIZE_BY_LEVEL[3])}</strong>.`,PRIZE_BY_LEVEL[3],true);
+  }
+}
+
+function finalizar(title, text, monto, withConfetti=false) {
+  clearMismatchTimer(); openRefs.length=0; roundActive=false;
+  document.getElementById('grid').classList.add('locked');
+  $('#rTitle').textContent=title; $('#rText').innerHTML=text;
+  const wa=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Hola soy el usuario ${phone} y gané ${money(monto)} en el MEMOTEST de ${CASINO}.`)}`;
+  $('#waBtn').href=wa; $('#result').style.display='block';
+  registrarGiro({usuario:phone, fingerp:fp, premio:money(monto)});
+  setLocalPlayed(phone, fp);
+  document.querySelectorAll('.card').forEach(c=>c.classList.add('locked'));
+  $('#go').style.display='none';
+  if(withConfetti) launchConfetti();
+}
+
+// ════════════════════════════════════════════════════
+//  PINTAR NOMBRE Y PASADOR
+// ════════════════════════════════════════════════════
+function splitNombrePasador(nombre) {
+  const match=nombre.match(/^(.*?)(\d+)\s*$/);
+  if(match) return { nombre:match[1].trim(), pasador:match[2] };
+  return { nombre, pasador:'' };
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const pasadorId = new URLSearchParams(window.location.search).get('p')
+    || new URLSearchParams(window.location.search).get('pasador');
+
+  if (!pasadorId) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Link inválido</p><p style="color:var(--muted);font-size:13px">Pedile el link correcto a tu pasador.</p></div>`;
+    return;
+  }
+
+  CFG = await loadConfig(pasadorId);
+
+  if (!CFG) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Juego no encontrado</p><p style="color:var(--muted);font-size:13px">El link no es válido o el juego está inactivo.</p></div>`;
+    return;
+  }
+
+  CASINO        = CFG.nombre;
+  ADMIN_WA      = CFG.whatsapp;
+  PRIZE_BY_LEVEL = CFG.prize_by_level;
+  LEVEL_TIMES    = CFG.level_times;
+
+  document.title = `${CASINO} — Memotest`;
+
+  const { nombre, pasador } = splitNombrePasador(CASINO);
+  ['#welcomeNombre','#headerNombre'].forEach(sel=>{ const el=$(sel); if(el) el.textContent=nombre; });
+  ['#welcomePasador','#headerPasador'].forEach(sel=>{ const el=$(sel); if(el) el.textContent=pasador; });
+
+  // Instrucciones dinámicas con valores reales
+  $('#howto').innerHTML=`
+    <h4>ℹ️ Cómo jugar</h4>
+    <p>Tenés que <strong>encontrar todas las parejas</strong> antes de que termine el tiempo. El juego tiene <strong>3 niveles</strong>, cada uno con menos segundos y premios más altos. Si perdés, cobrás siempre la base garantizada de <strong>${money(PRIZE_BY_LEVEL[1])}</strong>.</p>
+    <p>• Nivel 1: ${LEVEL_TIMES[0]} segundos – Premio ${money(PRIZE_BY_LEVEL[1])}<br>
+       • Nivel 2: ${LEVEL_TIMES[1]} segundos – Premio ${money(PRIZE_BY_LEVEL[2])}<br>
+       • Nivel 3: ${LEVEL_TIMES[2]} segundos – Premio ${money(PRIZE_BY_LEVEL[3])}</p>`;
+
+  $('#loadingScreen').style.display='none';
+  $('#welcome').style.display='flex';
+
+  $('#start').addEventListener('click', async () => {
+    const input=$('#phone'); phone=onlyDigits(input.value.trim());
+    if(!phone){ input.classList.add('error'); input.focus(); return; }
+    input.classList.remove('error');
+    fp=await deviceFingerprint();
+    $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
+    const blockedLocal=isLocalPlayed(phone,fp);
+    already=await fetchUltimoDeHoy(phone,fp);
+    $('#welcome').style.display='none'; $('#headerGame').style.display='block';
+    if(blockedLocal||already){
+      const quien=already?.usuario||phone, premio=already?.premio||'—';
+      $('#grid').innerHTML=''; $('#result').style.display='block';
+      $('#rTitle').textContent='✅ Ya jugaste hoy';
+      $('#rText').innerHTML=`Usuario: <strong>${quien}</strong><br>Último premio: <strong>${premio}</strong>.<br>Volvé mañana.`;
+      $('#go').style.display='none';
+    } else {
+      startLevel(1);
+    }
+  });
+
+  $('#phone').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#start').click(); });
+  $('#go').addEventListener('click', beginRound);
+
+});
+  </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Cartas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070b16; --panel:#0b1224; --panel2:#0a1226; --edge:#18254a;
+      --text:#eaf1ff; --muted:#9fb0d8; --accent:#60a5fa; --accent2:#facc15;
+      --good:#34d399; --bad:#ef4444; --r:18px; --shadow:0 18px 40px rgba(0,0,0,.5);
+      --cardFront:#0f1a2f;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:linear-gradient(180deg,#060b16 0%,#0b1220 60%,#08101d 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    .wrap{min-height:100dvh}
+    .container{width:100%;max-width:520px;margin:8px auto 16px;padding:12px}
+    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+    .brandTitle{font-size:26px;font-weight:900;margin:0 0 6px}
+    .subline{font-size:14px;font-weight:900;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:900}
+    .pill-pass{background:rgba(34,255,122,.14);color:#22ff7a;border:1px solid rgba(34,255,122,.35)}
+    .status{font-weight:900;font-size:14px;opacity:.95;margin-top:6px;line-height:1.35}
+    .subStatus{margin-top:6px;color:var(--muted);font-weight:800}
+    #welcome{display:flex;flex-direction:column;gap:12px}
+    .input{width:100%;background:#0a1426;color:var(--text);border:1px solid var(--edge);border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;outline:none}
+    .input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:0;font-weight:900;letter-spacing:.2px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#0b0f1a;cursor:pointer}
+    #headerGame{display:none;margin-bottom:10px}
+    .prizes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+    .prize{border-radius:12px;padding:10px;text-align:center;border:2px solid #facc15;background:#fff;font-size:15px;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .prize .emoji{font-size:20px}
+    .prize .val{background:#0b1224;color:#fff;border-radius:8px;padding:4px 8px;font-weight:900}
+    .board{padding:12px;border-radius:14px;background:linear-gradient(180deg,#0c162e,#0a1326);border:1px solid var(--edge)}
+    .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+    .card{position:relative;aspect-ratio:3/4;border-radius:16px;perspective:1000px}
+    .inner{position:absolute;inset:0;border-radius:16px;transform-style:preserve-3d;transition:transform .8s}
+    .card.flipped .inner{transform:rotateY(180deg)}
+    .front,.back{position:absolute;inset:0;border-radius:16px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;overflow:hidden;border:2px solid #e7c24a;box-shadow:0 10px 24px rgba(0,0,0,.4)}
+    .front{background:var(--cardFront);color:#fff}
+    .front .gem{font-size:clamp(24px,6vw,34px)}
+    .back{transform:rotateY(180deg);color:#0b1224;flex-direction:column}
+    .back .emoji{font-size:clamp(22px,5vw,30px);margin-bottom:4px}
+    .back .label{display:inline-block;background:#fff;border:2px solid #e7c24a;border-radius:10px;padding:6px 8px;font-weight:900}
+    .msg{text-align:center;margin:10px 0 0;font-size:15px}
+    .result{margin-top:10px}
+    .result .box{border:1px solid #20345f;border-radius:16px;background:linear-gradient(180deg,#0f1f3a,#10324f);padding:14px;text-align:center;box-shadow:var(--shadow)}
+    .result h3{margin:0 0 6px;font-size:18px}
+    .result p{margin:6px 0 12px;font-size:15px;color:#c9ffe5}
+    .wa{display:inline-block;background:#25D366;color:#072;font-weight:900;border-radius:12px;padding:12px 16px;text-decoration:none}
+    .card.disabled{opacity:.45;pointer-events:none;filter:grayscale(1)}
+    .card.win .back{border-color:#34d399 !important;box-shadow:0 0 0 3px rgba(52,211,153,.95),0 0 22px rgba(52,211,153,.45),inset 0 0 18px rgba(52,211,153,.35)}
+    .card.win{opacity:1 !important;filter:none !important}
+    .card.dim:not(.win){opacity:.35;filter:grayscale(.25)}
+    #loadingScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80dvh;gap:16px}
+    .spin{width:40px;height:40px;border:3px solid var(--edge);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .spin-txt{color:var(--muted);font-size:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="container">
+
+      <!-- LOADING -->
+      <div id="loadingScreen">
+        <div class="spin"></div>
+        <p class="spin-txt">Cargando...</p>
+      </div>
+
+      <!-- INICIO -->
+      <div id="welcome" class="panel" style="display:none">
+        <div class="subline">
+          <span id="welcomeNombre">---</span>
+          <span class="pill pill-pass" id="welcomePasador">---</span>
+        </div>
+        <h1 class="brandTitle">CARTAS — Quiniela</h1>
+        <div class="status">
+          Ingresá tu número y tocá <strong>Empezar</strong>.<br>
+          🃏 Tocá las cartas para <strong>desbloquearlas</strong>. Si hacés <strong>3 iguales</strong>, ganás el premio de esas cartas.
+        </div>
+        <input id="phone" class="input" placeholder="Poné tu número" inputmode="numeric" />
+        <button id="start" class="btn">Empezar ▶</button>
+      </div>
+
+      <!-- HEADER EN JUEGO -->
+      <div id="headerGame" class="panel">
+        <h2 class="brandTitle">CARTAS — Quiniela</h2>
+        <div class="subline">
+          <span id="headerNombre">---</span>
+          <span class="pill pill-pass" id="headerPasador">---</span>
+        </div>
+        <div class="status">
+          <div id="statusNumber">👤 Número: —</div>
+          <div id="statusTime">🕒 —/—/— —:—:—</div>
+          <div class="subStatus">🎁 Posibles premios</div>
+        </div>
+        <div class="prizes" id="prizes"></div>
+      </div>
+
+      <!-- JUEGO -->
+      <div id="game" class="panel" style="display:none">
+        <div class="board">
+          <div id="grid" class="grid"></div>
+        </div>
+        <p id="msg" class="msg"></p>
+        <div id="result" class="result" style="display:none">
+          <div class="box">
+            <h3 id="rTitle">—</h3>
+            <p id="rText">—</p>
+            <a id="waBtn" class="wa" target="_blank" rel="noopener">📲 Reclamar por WhatsApp</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES — único lugar donde tocar código
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO = '', ADMIN_WA = '';
+const JUEGO = 'cartas';
+
+// Premios por defecto — idéntico al original
+// Configurable desde Supabase en el campo premios_cartas (JSON)
+const PRIZES_DEFAULT = [
+  { nombre:'$500',    emoji:'🎲', bg:'#FFD93D', cantidad:4 },
+  { nombre:'$1.000',  emoji:'🧧', bg:'#3DB2FF', cantidad:4 },
+  { nombre:'$1.500',  emoji:'🎟️', bg:'#9B59B6', cantidad:3 },
+  { nombre:'$2.000',  emoji:'🍀', bg:'#E74C3C', cantidad:3 },
+  { nombre:'$3.000',  emoji:'💰', bg:'#2ECC71', cantidad:3 },
+  { nombre:'$4.000',  emoji:'🏆', bg:'#FF8C00', cantidad:3 },
+  { nombre:'$10.000', emoji:'💎', bg:'#3498DB', cantidad:2 },
+  { nombre:'$50.000', emoji:'👑', bg:'#E84393', cantidad:2 }
+];
+
+let phone = '', fp = null, selected = [], winner = null, locked = false;
+
+const $ = s => document.querySelector(s);
+const onlyDigits = s => (s||'').replace(/\D+/g,'');
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  premios_cartas: JSON array con los premios y sus cantidades
+//  [{"nombre":"$500","emoji":"🎲","bg":"#FFD93D","cantidad":4}, ...]
+//  cantidad = cuántas cartas de ese tipo hay en el mazo
+//  (menos cantidad = más difícil de hacer 3 iguales)
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(pasadorId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', pasadorId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  // Normalizar premios_cartas
+  if (!data.premios_cartas) {
+    data.premios_cartas = PRIZES_DEFAULT;
+  } else if (typeof data.premios_cartas === 'string') {
+    try { data.premios_cartas = JSON.parse(data.premios_cartas); }
+    catch { data.premios_cartas = PRIZES_DEFAULT; }
+  }
+
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function tickClock() {
+  const now = new Date();
+  const dopts = { timeZone:'America/Argentina/Buenos_Aires', day:'2-digit', month:'2-digit', year:'numeric' };
+  const topts = { timeZone:'America/Argentina/Buenos_Aires', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+  $('#statusTime').textContent = `🕒 ${new Intl.DateTimeFormat('es-AR',dopts).format(now)}, ${new Intl.DateTimeFormat('es-AR',topts).format(now)}`;
+}
+setInterval(tickClock, 1000);
+
+// ════════════════════════════════════════════════════
+//  HORA ARGENTINA
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz = 'America/Argentina/Buenos_Aires';
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone:tz, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+  }).formatToParts(now);
+  const get = t => parts.find(p => p.type === t).value;
+  const fecha = `${get('year')}-${get('month')}-${get('day')}`;
+  return {
+    fecha,
+    horaLocalNoTZ:    `${fecha} ${get('hour')}:${get('minute')}:${get('second')}`,
+    horaISOconOffset: `${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,
+    horaUTC:          now.toISOString()
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function deviceFingerprint() {
+  try {
+    const txt = [navigator.userAgent, navigator.platform, navigator.language,
+      (navigator.languages||[]).join(','), screen.width+'x'+screen.height,
+      screen.colorDepth, (Intl.DateTimeFormat().resolvedOptions().timeZone||''),
+      (navigator.hardwareConcurrency||''), (navigator.deviceMemory||'')].join('|');
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch {
+    const seed = [navigator.userAgent, navigator.platform, screen.width, screen.height].join('|');
+    let h=0; for(let i=0;i<seed.length;i++){h=((h<<5)-h)+seed.charCodeAt(i);h|=0;}
+    return 'fp_'+Math.abs(h).toString(16);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function localBlockKeyUser(u, f) { const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:user:${u}:${f}`; }
+function localBlockKeyDevice(f)  { const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:device:${f}`; }
+function setLocalPlayed(u, f) {
+  localStorage.setItem(localBlockKeyUser(u,f), '1');
+  localStorage.setItem(localBlockKeyDevice(f), '1');
+}
+function isLocalPlayed(u, f) {
+  return !!localStorage.getItem(localBlockKeyUser(u,f)) || !!localStorage.getItem(localBlockKeyDevice(f));
+}
+
+async function fetchUltimoDeHoy(usuario, fingerp) {
+  const {fecha} = nowAR();
+  const { data, error } = await sb
+    .from('giros')
+    .select('usuario,premio')
+    .eq('fecha', fecha)
+    .eq('pasador_id', CFG.pasador_id)
+    .eq('juego', JUEGO)
+    .or(`usuario.eq.${usuario},fingerprint.eq.${fingerp}`)
+    .order('id', { ascending: false })
+    .limit(1);
+  if (error) { console.warn('fetchUltimoDeHoy error', error); return null; }
+  return (data && data[0]) ? data[0] : null;
+}
+
+async function registrarGiro({ usuario, fingerp, premio }) {
+  const { fecha, horaLocalNoTZ, horaISOconOffset, horaUTC } = nowAR();
+  const { error } = await sb.from('giros').insert([{
+    usuario, fingerprint: fingerp, premio, fecha,
+    hora: horaISOconOffset, hora_local: horaLocalNoTZ, hora_utc: horaUTC,
+    pasador_id: CFG.pasador_id, casino: CASINO, juego: JUEGO
+  }]);
+  if (error) { console.warn('insert error', error); }
+}
+
+function textoYaJugo(phoneIngresado, reg) {
+  const uReg = reg?.usuario || phoneIngresado;
+  const premio = reg?.premio ? `<strong>${reg.premio}</strong>` : '—';
+  return `✅ Ya jugaste hoy como <strong>${uReg}</strong>.<br>Último resultado: ${premio}.<br>💡 Volvé mañana para intentarlo de nuevo.`;
+}
+
+// ════════════════════════════════════════════════════
+//  UI — idéntico al original
+// ════════════════════════════════════════════════════
+function renderPrizeBar() {
+  const el = $('#prizes'); el.innerHTML='';
+  CFG.premios_cartas.forEach(p => {
+    const i = document.createElement('div'); i.className='prize'; i.style.background=p.bg;
+    i.innerHTML = `<div class="emoji">${p.emoji}</div><span class="val">${p.nombre}</span>`;
+    el.appendChild(i);
+  });
+}
+
+function buildDeck() {
+  const arr = [];
+  CFG.premios_cartas.forEach(p => { for(let i=0;i<p.cantidad;i++) arr.push({...p}); });
+  for(let i=arr.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+
+function renderGrid(deck) {
+  const grid = $('#grid'); grid.innerHTML='';
+  deck.forEach(c => {
+    const card = document.createElement('div'); card.className='card';
+    card.dataset.nombre=c.nombre; card.dataset.emoji=c.emoji;
+    const inner = document.createElement('div'); inner.className='inner';
+    const front = document.createElement('div'); front.className='front'; front.innerHTML=`<div class="gem">💎</div>`;
+    const back  = document.createElement('div'); back.className='back'; back.style.background=c.bg;
+    back.innerHTML=`<div class="emoji">${c.emoji}</div><div class="label">${c.nombre}</div>`;
+    inner.appendChild(front); inner.appendChild(back); card.appendChild(inner);
+    card.addEventListener('click', () => flip(card));
+    grid.appendChild(card);
+  });
+}
+
+function markWinners(tipo) {
+  const flippedOfType = Array.from(document.querySelectorAll('.card.flipped'))
+    .filter(c => c.dataset.nombre === tipo).slice(0,3);
+  flippedOfType.forEach(c => c.classList.add('win'));
+  document.querySelectorAll('.card').forEach(c => { if(!flippedOfType.includes(c)) c.classList.add('dim'); });
+}
+
+function flip(card) {
+  if(locked || card.classList.contains('flipped')) return;
+  card.classList.add('flipped');
+  const tipo = card.dataset.nombre;
+  selected.push(tipo);
+  const count = selected.reduce((a,n)=>((a[n]=(a[n]||0)+1),a),{});
+  if(count[tipo]===3 && !winner) {
+    winner = { nombre: tipo, emoji: card.dataset.emoji };
+    markWinners(tipo);
+    endGame(true, `${winner.emoji} ${winner.nombre}`);
+  }
+}
+
+function disableBoard() {
+  document.querySelectorAll('.card').forEach(c => { if(!c.classList.contains('win')) c.classList.add('disabled'); });
+}
+
+async function endGame(win, prizeLabel, opts={blocked:false}) {
+  locked=true; disableBoard();
+  const r=$('#result'); r.style.display='block';
+  $('#rTitle').innerHTML = win
+    ? '🎉 <span style="color:var(--good)">¡Felicitaciones!</span>'
+    : '😔 <span style="color:var(--bad)">Qué lástima</span>';
+
+  if(win) {
+    $('#rText').innerHTML=`Número <strong>${phone}</strong>: ganaste <strong>${prizeLabel}</strong>. Tocá el botón para reclamar.`;
+  } else {
+    const reg = await fetchUltimoDeHoy(phone, fp);
+    $('#rText').innerHTML = textoYaJugo(phone, reg);
+  }
+
+  if(!opts.blocked) {
+    const premio = win ? `GANÓ ${prizeLabel}` : 'SIN PREMIO';
+    await registrarGiro({ usuario:phone, fingerp:fp, premio });
+    setLocalPlayed(phone, fp);
+  }
+
+  const msg = win
+    ? `Hola, soy el número ${phone}. Acabo de GANAR ${prizeLabel} en CARTAS (${CASINO}). Quiero reclamar mi premio.`
+    : `Hola, soy el número ${phone}. Jugué CARTAS en ${CASINO}.`;
+  $('#waBtn').href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+}
+
+function showGame() { $('#welcome').style.display='none'; $('#headerGame').style.display='block'; $('#game').style.display='block'; }
+function setWho()   { $('#statusNumber').textContent=`👤 Número: ${phone||'—'}`; }
+
+// ════════════════════════════════════════════════════
+//  PINTAR NOMBRE Y PASADOR
+// ════════════════════════════════════════════════════
+function splitNombrePasador(nombre) {
+  const match = nombre.match(/^(.*?)(\d+)\s*$/);
+  if(match) return { nombre: match[1].trim(), pasador: match[2] };
+  return { nombre, pasador: '' };
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const pasadorId = new URLSearchParams(window.location.search).get('p')
+    || new URLSearchParams(window.location.search).get('pasador');
+
+  if (!pasadorId) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Link inválido</p><p style="color:var(--muted);font-size:13px">Pedile el link correcto a tu pasador.</p></div>`;
+    return;
+  }
+
+  CFG = await loadConfig(pasadorId);
+
+  if (!CFG) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Juego no encontrado</p><p style="color:var(--muted);font-size:13px">El link no es válido o el juego está inactivo.</p></div>`;
+    return;
+  }
+
+  CASINO   = CFG.nombre;
+  ADMIN_WA = CFG.whatsapp;
+
+  document.title = `${CASINO} — Cartas`;
+
+  const { nombre, pasador } = splitNombrePasador(CASINO);
+  ['#welcomeNombre','#headerNombre'].forEach(sel => { const el=$(sel); if(el) el.textContent=nombre; });
+  ['#welcomePasador','#headerPasador'].forEach(sel => { const el=$(sel); if(el) el.textContent=pasador; });
+
+  $('#loadingScreen').style.display='none';
+  $('#welcome').style.display='flex';
+
+  $('#start').addEventListener('click', async () => {
+    const input=$('#phone'); const val=onlyDigits(input.value.trim());
+    if(!val){ input.classList.add('error'); return; }
+    input.classList.remove('error');
+    phone=val; setWho(); tickClock();
+    fp = await deviceFingerprint();
+    showGame();
+    renderPrizeBar(); renderGrid(buildDeck());
+
+    if(isLocalPlayed(phone, fp)){
+      setTimeout(()=>{ document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled')); endGame(false,'',{blocked:true}); },120);
+      return;
+    }
+    const reg = await fetchUltimoDeHoy(phone, fp);
+    if(reg){
+      setTimeout(()=>{ document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled')); endGame(false,'',{blocked:true}); },120);
+    }
+  });
+
+  $('#phone').addEventListener('keydown', e => { if(e.key==='Enter') $('#start').click(); });
+
+});
+  </script>
+</body>
+</html>

@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Minas — Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#060d1f; --bg2:#0b1632;
+  --panel:#0d1730; --panel2:#0a1226;
+  --stroke:#1e2d4a; --stroke2:#263550;
+  --ink:#dce8ff; --muted:#5a7099;
+  --green:#24e07a; --green-d:#0ea763; --green-glow:rgba(36,224,122,.3);
+  --cyan:#3ee7ff; --cyan-glow:rgba(62,231,255,.25);
+  --gold:#ffd600; --gold-d:#b8a000;
+  --red:#ff4757; --red-glow:rgba(255,71,87,.3);
+  --gem-color:#3ee7ff; --mine-color:#ff4757;
+  --r:16px; --r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  height:100%;
+  font-family:'Poppins',system-ui,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(ellipse 900px 500px at 20% -5%,rgba(62,231,255,.06),transparent 60%),
+    radial-gradient(ellipse 700px 400px at 90% 10%,rgba(36,224,122,.05),transparent 60%),
+    linear-gradient(160deg,var(--bg1),var(--bg2));
+  overflow-x:hidden;
+}
+/* Grid puntitos fondo */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);
+  background-size:28px 28px;z-index:0;
+}
+
+/* ── LOADING ── */
+#loadingScreen{
+  position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:999;
+  background:linear-gradient(160deg,var(--bg1),var(--bg2));
+}
+.spin-loader{width:44px;height:44px;border:3px solid var(--stroke2);border-top-color:var(--cyan);border-radius:50%;animation:spinL .8s linear infinite}
+@keyframes spinL{to{transform:rotate(360deg)}}
+.loading-txt{font-family:'Orbitron',monospace;font-size:12px;color:var(--cyan);letter-spacing:2px}
+
+/* ── WRAP ── */
+.wrap{position:relative;z-index:1;min-height:100dvh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 12px 40px}
+.panel{width:100%;max-width:880px;background:var(--panel);border:1px solid var(--stroke2);border-radius:var(--r);box-shadow:0 12px 32px rgba(0,0,0,.4);padding:14px}
+
+/* ── PANTALLAS ── */
+.pantalla{display:none}
+.pantalla.activa{display:flex;flex-direction:column;align-items:center;gap:10px}
+
+/* ── HEADER ── */
+.game-header{text-align:center;padding:4px 0 8px}
+.casino-tag{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--panel2);border:1px solid var(--stroke2);
+  border-radius:999px;padding:5px 14px;
+  font-family:'Orbitron',monospace;font-size:11px;color:var(--cyan);
+  letter-spacing:1px;margin-bottom:8px;
+  box-shadow:0 0 14px var(--cyan-glow);
+}
+.game-title{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(1.5rem,6vw,2.4rem);font-weight:900;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:none;letter-spacing:2px;line-height:1;margin-bottom:4px;
+}
+.game-sub{font-size:.82rem;color:var(--muted);font-weight:600;letter-spacing:.3px}
+
+/* ── BIENVENIDA ── */
+.card-welcome{width:100%;max-width:520px;background:var(--panel2);border:1px solid var(--stroke2);border-radius:var(--r);padding:14px}
+.label{font-size:.78rem;color:var(--muted);font-weight:700;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+input[type="text"]{
+  background:var(--bg2);color:#fff;border:1px solid var(--stroke2);
+  border-radius:var(--r2);padding:12px 14px;width:100%;
+  font-family:'Poppins',sans-serif;font-weight:700;font-size:.95rem;outline:none;
+}
+input[type="text"]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+input[type="text"].error{border-color:var(--red)}
+.how{line-height:1.6;font-size:.85rem;color:var(--ink)}
+.how li{margin:.15rem 0;list-style:none;padding-left:0}
+.how li::before{content:"→ ";color:var(--cyan)}
+
+/* ── BOTONES ── */
+.btn{border:0;border-radius:var(--r2);padding:12px 16px;font-weight:800;cursor:pointer;font-family:'Poppins',sans-serif;transition:transform .1s,box-shadow .1s;letter-spacing:.3px}
+.btn:active:not(:disabled){transform:translateY(2px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-green{background:linear-gradient(180deg,var(--green),var(--green-d));color:#00160c;box-shadow:0 5px 0 #067a3c,0 8px 20px var(--green-glow)}
+.btn-cyan{background:linear-gradient(180deg,var(--cyan),#13b5c8);color:#051a1f;box-shadow:0 5px 0 #0a7b8a,0 8px 20px var(--cyan-glow)}
+.btn-gold{background:linear-gradient(180deg,var(--gold),var(--gold-d));color:#1a1000;box-shadow:0 5px 0 #7a5e00,0 8px 20px rgba(255,214,0,.2)}
+.btn-wa{background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;box-shadow:0 5px 0 #0c5e51;text-decoration:none;text-align:center;display:none}
+.btn-full{width:100%;margin-top:6px}
+
+/* ── JUEGO — LAYOUT ── */
+.game-layout{display:grid;grid-template-columns:1fr 240px;gap:12px;width:100%;max-width:880px}
+@media(max-width:720px){.game-layout{grid-template-columns:1fr}}
+
+/* ── TABLERO ── */
+.board-wrap{display:flex;justify-content:center}
+.board{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:6px;width:min(94vw,340px);
+}
+.cell{
+  aspect-ratio:1;border-radius:var(--r2);
+  background:var(--panel2);border:1px solid var(--stroke2);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:border-color .15s,box-shadow .15s,transform .1s;
+  font-size:0; /* ocultar hasta revelar */
+}
+.cell::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(130deg,rgba(255,255,255,.06),transparent 60%);
+  opacity:0;transition:opacity .2s;
+}
+.cell:hover:not([data-locked])::before{opacity:1}
+.cell:hover:not([data-locked]){border-color:var(--stroke);transform:scale(1.04)}
+.cell-icon{font-size:1.8rem;line-height:1;transition:transform .2s}
+
+/* Estados */
+.cell.safe{
+  background:rgba(36,224,122,.08);border-color:rgba(36,224,122,.4);
+  box-shadow:0 0 12px rgba(36,224,122,.15);font-size:inherit;
+}
+.cell.safe.open-strong{border-color:var(--green);box-shadow:0 0 0 2px var(--green),0 0 16px var(--green-glow)}
+.cell.boom{background:rgba(255,71,87,.12);border-color:rgba(255,71,87,.5);animation:shakeCell .3s ease;font-size:inherit}
+@keyframes shakeCell{0%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}100%{transform:translateX(0)}}
+.cell.hit{border-color:var(--red)!important;box-shadow:0 0 0 2px var(--red),0 0 20px var(--red-glow)!important}
+.cell.reveal-safe{background:rgba(36,224,122,.05);border-color:rgba(36,224,122,.2);font-size:inherit}
+.cell.reveal-mine{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.25);font-size:inherit}
+.cell.faded{opacity:.35;filter:saturate(.5)}
+.cell.open-strong{opacity:1;filter:none}
+.cell.picked{border-color:var(--green)!important;box-shadow:0 0 0 3px var(--green),0 0 20px var(--green-glow)!important}
+
+/* ── PANEL LATERAL ── */
+.side{display:flex;flex-direction:column;gap:8px}
+.pill{background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r2);padding:10px 12px;font-size:.8rem}
+.pill-label{font-size:.7rem;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.pill-val{color:var(--cyan);font-weight:800;font-size:.95rem}
+
+/* Select minas */
+.mines-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select#select-mines{
+  background:var(--bg2);color:var(--green);border:1px solid var(--green-d);
+  border-radius:8px;padding:6px 10px;font-weight:800;font-size:.9rem;
+  font-family:'Poppins',sans-serif;outline:none;cursor:pointer;
+}
+.badge{
+  background:var(--panel);border:1px solid var(--stroke2);
+  border-radius:999px;padding:4px 10px;font-size:.72rem;font-weight:800;color:var(--muted);white-space:nowrap;
+}
+.badge b{color:var(--ink)}
+#base-note{font-size:.72rem;color:var(--muted);margin-top:4px;font-weight:600}
+
+/* Caja actual */
+.cash-display{
+  text-align:center;
+  font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;
+  color:var(--green);text-shadow:0 0 20px var(--green-glow);
+  padding:10px;
+}
+
+.status-box{
+  background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r2);
+  padding:10px;font-size:.82rem;min-height:52px;color:var(--ink);line-height:1.4;
+}
+#today-note{font-size:.75rem;display:none}
+.req-msg{
+  background:rgba(36,224,122,.1);border:1px solid var(--green-d);
+  border-radius:var(--r2);padding:8px 10px;font-size:.78rem;
+  font-weight:700;color:var(--green);text-align:center;display:none;
+}
+
+/* ── TOAST MULTIPLICADOR ── */
+#toast-x{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:var(--panel);border:2px solid var(--green);
+  color:var(--green);padding:14px 20px 18px;border-radius:16px;
+  font-weight:800;font-size:1.5rem;box-shadow:0 12px 32px rgba(0,0,0,.5),0 0 24px var(--green-glow);
+  display:none;z-index:9000;text-align:center;font-family:'Orbitron',monospace;
+}
+#toast-x .sub{display:block;margin-top:4px;font-size:.85rem;color:var(--ink);font-family:'Poppins',sans-serif}
+.toast-btn{display:none;margin-top:10px;padding:8px 16px;border:0;border-radius:10px;font-weight:800;cursor:pointer;background:var(--green);color:#00160c;box-shadow:0 4px 0 var(--green-d);font-family:'Poppins',sans-serif}
+#toast-x.sticky .toast-btn{display:inline-block}
+
+/* ── MODAL ── */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100000;align-items:center;justify-content:center;padding:16px}
+#modal{width:min(520px,92vw);background:var(--panel);border:1px solid var(--stroke2);border-radius:var(--r);box-shadow:0 20px 50px rgba(0,0,0,.6);padding:20px;text-align:center}
+#modal-title{font-weight:800;font-size:1.1rem;margin-bottom:8px;font-family:'Orbitron',monospace;color:var(--cyan)}
+#modal-msg{opacity:.85;margin-bottom:16px;font-size:.9rem;line-height:1.5}
+.modal-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ── CONFETTI ── */
+#confeti{position:fixed;inset:0;pointer-events:none;z-index:99999}
+
+/* ── INFO BOX ── */
+.info-box{background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r);padding:12px;text-align:center;width:100%;max-width:520px}
+.info-title{font-family:'Orbitron',monospace;font-size:.85rem;color:var(--cyan);margin-bottom:4px;letter-spacing:1px}
+.info-sub{font-size:.75rem;color:var(--muted);font-weight:600}
+.btn-wa-welcome{display:inline-block;margin-top:8px;padding:10px 18px;background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;border-radius:10px;font-size:.82rem;font-weight:800;text-decoration:none;box-shadow:0 4px 0 #0c5e51}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="spin-loader"></div>
+  <p class="loading-txt">CARGANDO...</p>
+</div>
+
+<canvas id="confeti"></canvas>
+
+<div class="wrap">
+
+  <!-- P1: INICIO -->
+  <div id="p1" class="pantalla activa">
+    <div class="game-header">
+      <div class="casino-tag">💎 <span id="casinoTag">CASINO</span> 💎</div>
+      <div class="game-title">MINAS</div>
+      <div class="game-sub">Destapá casillas y retirá a tiempo</div>
+    </div>
+
+    <div class="card-welcome panel">
+      <div class="label">👤 Usuario</div>
+      <input id="input-user" type="text" placeholder="Escribí tu usuario" autocomplete="off"/>
+    </div>
+
+    <div class="card-welcome panel">
+      <div class="label">📜 Cómo se juega</div>
+      <ul class="how">
+        <li>Elegís cuántas <b>minas</b> 💣 poner en el tablero.</li>
+        <li>Destapás casillas: 💎 suma premio, 💣 lo perdés todo.</li>
+        <li>Podés <b>RETIRAR</b> en cualquier momento con lo ganado.</li>
+        <li>Más minas = mayor riesgo pero <b>premios más altos</b>.</li>
+        <li id="how-base-note">Desde 11 minas no hay base garantizada.</li>
+      </ul>
+    </div>
+
+    <button id="btn-continuar" class="btn btn-green btn-full" style="max-width:520px">CONTINUAR ▶️</button>
+
+    <div class="info-box">
+      <div class="info-title" id="infoTitle">💎 CASINO 💎</div>
+      <div class="info-sub">LÍNEA ACTIVA 24HS · TODOS LOS PREMIOS SE PAGAN AL INSTANTE</div>
+      <a id="waContacto" href="#" target="_blank" class="btn-wa-welcome">📞 Contactanos por WhatsApp</a>
+    </div>
+  </div>
+
+  <!-- P2: JUEGO -->
+  <div id="p2" class="pantalla">
+    <div class="game-header" style="width:100%;max-width:880px">
+      <div class="casino-tag">💎 <span id="casinoTagGame">CASINO</span> — MINAS 💣</div>
+    </div>
+
+    <div class="game-layout">
+      <!-- Tablero -->
+      <div>
+        <div class="board-wrap"><div id="board" class="board"></div></div>
+      </div>
+
+      <!-- Panel lateral -->
+      <div class="side">
+        <div class="pill">
+          <div class="pill-label">Jugador</div>
+          <div class="pill-val" id="hud-user">—</div>
+        </div>
+        <div class="pill">
+          <div class="pill-label">Fecha / Hora (ARG)</div>
+          <div class="pill-val" id="hud-date">—</div>
+        </div>
+
+        <!-- Selector de minas -->
+        <div class="pill">
+          <div class="mines-row">
+            <span class="pill-label" style="margin:0">Minas:</span>
+            <select id="select-mines"></select>
+            <span class="badge">Base: <b id="preview-base">—</b></span>
+            <span class="badge">Máx: <b id="preview-tope">—</b></span>
+          </div>
+          <div id="base-note"></div>
+        </div>
+
+        <!-- Caja -->
+        <div class="pill">
+          <div class="pill-label">💎 Caja actual</div>
+          <div class="cash-display" id="hud-cash">$0</div>
+        </div>
+
+        <div class="status-box" id="status">Tocá una casilla. 💎 suma, 💣 explota.</div>
+        <div id="today-note" class="pill"></div>
+
+        <button id="btn-cashout" class="btn btn-cyan btn-full" disabled>RETIRAR Y COBRAR 💰</button>
+        <div id="req-msg" class="req-msg"></div>
+        <a id="btn-wsp" class="btn btn-wa btn-full" href="#" target="_blank" rel="noopener">💬 RECLAMAR POR WHATSAPP</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- MODAL -->
+<div id="overlay">
+  <div id="modal">
+    <div id="modal-title">Resultado</div>
+    <div id="modal-msg"></div>
+    <div class="modal-btns">
+      <a id="modal-wsp" class="btn btn-green" target="_blank" rel="noopener">💬 RECLAMAR POR WHATSAPP</a>
+      <button id="modal-close" class="btn btn-cyan">CERRAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST MULTIPLICADOR -->
+<div id="toast-x">
+  <span id="toast-x-mult">1.00×</span>
+  <span id="toast-x-ars" class="sub">$0</span>
+  <button id="toast-continue" class="toast-btn">CONTINUAR</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:false}});
+
+// ════════════════════════════════════════════════════
+//  CONFIG — todo editable desde Supabase
+//  Campos en juegos_config:
+//  nombre, tipo, whatsapp,
+//  base: monto base cuando explota con ≤10 minas (default 0, se calcula por minas)
+//  premios_odds: JSON con config del juego:
+//    {
+//      "base_zero_from": 11,   ← desde qué nº de minas la base es $0
+//      "house_edge": 0.95,     ← factor de la casa (0.95 = 95% retorno)
+//      "cap_table": {          ← premio máximo por cantidad de minas
+//        "1":2500,"2":3000,...,"24":82000
+//      }
+//    }
+//  activo: true/false
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO_NOMBRE = '';
+let ADMIN_WA = '';
+const JUEGO = 'minas';
+
+const GRID = 5, CELLS = 25;
+const HOUSE_EDGE = 0.95;
+const BASE_ZERO_FROM_DEFAULT = 11;
+let BASE_ZERO_FROM = BASE_ZERO_FROM_DEFAULT;
+
+const CAP_POR_MINAS_DEFAULT = {
+  1:2500,  2:3000,  3:3600,  4:4300,  5:5200,
+  6:6300,  7:7600,  8:9200,  9:11100, 10:13400,
+  11:16200,12:19600,13:23800,14:29000,15:35300,
+  16:43000,17:52300,18:63600,19:77300,20:100000,
+  21:95000,22:90000,23:86000,24:82000
+};
+let CAP_POR_MINAS = {...CAP_POR_MINAS_DEFAULT};
+
+const basePorMinas = m => m >= BASE_ZERO_FROM ? 0 : 100 * m;
+const topePorMinas = m => CAP_POR_MINAS[m] || 5000;
+const toMoney = n => '$' + Number(Math.round(n)).toLocaleString('es-AR');
+
+async function loadConfig(casinoId) {
+  const {data,error} = await sb.from('juegos_config').select('*').eq('pasador_id',casinoId).eq('juego',JUEGO).eq('activo',true).single();
+  if (error||!data) return null;
+  if (data.premios_odds) {
+    const cfg = typeof data.premios_odds==='string' ? JSON.parse(data.premios_odds) : data.premios_odds;
+    if (cfg.base_zero_from) BASE_ZERO_FROM = Number(cfg.base_zero_from);
+    if (cfg.cap_table) CAP_POR_MINAS = cfg.cap_table;
+  }
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA AR
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return {
+    fecha,
+    horaISO:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,
+    horaUTC:now.toISOString(),
+    display:`${get('day')}/${get('month')} ${get('hour')}:${get('minute')}:${get('second')}`
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function getFingerprint() {
+  try {
+    const k='rg_seed'; let s=localStorage.getItem(k);
+    if(!s){s=Math.random().toString(36).slice(2)+Date.now();localStorage.setItem(k,s);}
+    const txt=[navigator.userAgent,navigator.language,navigator.platform,screen.width+'x'+screen.height,s].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+const LOCK_KEY = () => `minas_${CASINO_NOMBRE}_${nowAR().fecha}`;
+function setLocalLock(prize,user){ try{localStorage.setItem(LOCK_KEY(),JSON.stringify({prize,user,ts:Date.now()}));}catch{} }
+function readLocalLock(){ try{const s=localStorage.getItem(LOCK_KEY());return s?JSON.parse(s):null;}catch{return null;} }
+
+async function checkYaJugo(user,fp) {
+  try {
+    const {fecha}=nowAR();
+    const {data,error}=await sb.from('giros').select('premio,usuario').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${user},fingerprint.eq.${fp}`).order('id',{ascending:false}).limit(1).maybeSingle();
+    if(error) return null;
+    return data?{premio:data.premio,usuarioReal:data.usuario}:null;
+  }catch{return null;}
+}
+
+async function registrarGiro(premio) {
+  const {fecha,horaISO,horaUTC}=nowAR();
+  await sb.from('giros').insert([{
+    usuario, fingerprint, premio, fecha,
+    hora:horaISO, hora_local:horaISO, hora_utc:horaUTC,
+    pasador_id:CFG.pasador_id, casino:CASINO_NOMBRE, juego:JUEGO
+  }]);
+}
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+const $ = s => document.querySelector(s);
+let usuario='', fingerprint='';
+let m=3, base=300, tope=4000, caja=0;
+let mapa=[], abiertos=0, jugando=false, terminado=false;
+let opened=new Set(), lastPick=null;
+let confRAF=null;
+
+const P1=$('#p1'), P2=$('#p2');
+const boardEl=$('#board');
+const hudUser=$('#hud-user'), hudCash=$('#hud-cash'), hudDate=$('#hud-date');
+const statusEl=$('#status'), btnCashout=$('#btn-cashout');
+const overlay=$('#overlay');
+
+function go(el){ [P1,P2].forEach(e=>e.classList.remove('activa')); el.classList.add('activa'); window.scrollTo({top:0,behavior:'smooth'}); }
+function setCash(v){ caja=v; hudCash.textContent=toMoney(caja); }
+
+function startClock(){
+  function tick(){ const el=$('#hud-date'); if(el) el.textContent=nowAR().display; }
+  tick(); clearInterval(window.__clk); window.__clk=setInterval(tick,1000);
+}
+
+// ════════════════════════════════════════════════════
+//  PREMIO PROGRESIVO — idéntico al original
+// ════════════════════════════════════════════════════
+function payoutProgresivo(k, m) {
+  const S = 25-m;
+  const baseAmt = basePorMinas(m);
+  const CAP = topePorMinas(m);
+  const t = Math.max(0, Math.min(1, k/S));
+  return Math.round(baseAmt + (CAP-baseAmt)*t);
+}
+
+function applyMines() {
+  m = Number($('#select-mines').value);
+  base = basePorMinas(m);
+  tope = topePorMinas(m);
+  $('#preview-base').textContent = toMoney(base);
+  $('#preview-tope').textContent = toMoney(tope);
+  const note=$('#base-note');
+  if(note) note.textContent = m >= BASE_ZERO_FROM
+    ? '⚠️ Sin base: si explota cobrás $0.'
+    : `💼 Base garantizada si explota: ${toMoney(base)}`;
+}
+
+function fillSelect() {
+  const sel=$('#select-mines'); sel.innerHTML='';
+  for(let i=1;i<=24;i++){const o=document.createElement('option');o.value=i;o.textContent=i;sel.appendChild(o);}
+  sel.value='3'; sel.onchange=()=>{ applyMines(); resetBoard(); };
+}
+
+function resetBoard() {
+  abiertos=0; terminado=false; jugando=true;
+  opened.clear(); lastPick=null;
+  setCash(base>0?base:0);
+  statusEl.textContent='Tocá una casilla. 💎 suma, 💣 explota.';
+  btnCashout.disabled=true;
+  const r=$('#req-msg'); if(r) r.style.display='none';
+  const w=$('#btn-wsp'); if(w) w.style.display='none';
+  makeBoard(); placeMines();
+  $('#select-mines').disabled=false;
+}
+
+function makeBoard() {
+  boardEl.innerHTML='';
+  for(let i=0;i<CELLS;i++){
+    const c=document.createElement('div'); c.className='cell';
+    c.addEventListener('click',()=>pick(i));
+    boardEl.appendChild(c);
+  }
+}
+
+function placeMines() {
+  mapa=Array(CELLS).fill(0);
+  const pos=[...Array(CELLS).keys()];
+  for(let i=pos.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pos[i],pos[j]]=[pos[j],pos[i]];}
+  for(let i=0;i<m;i++) mapa[pos[i]]=1;
+}
+
+// ════════════════════════════════════════════════════
+//  LÓGICA PICK
+// ════════════════════════════════════════════════════
+function pick(i) {
+  if(!jugando||terminado) return;
+  const cell=boardEl.children[i];
+  if(!cell||cell.classList.contains('reveal')) return;
+  $('#select-mines').disabled=true;
+  cell.classList.add('reveal');
+
+  if(mapa[i]===1){
+    cell.className='cell boom';
+    cell.innerHTML='<div class="cell-icon">💣</div>';
+    explotar(i); return;
+  }
+
+  cell.className='cell safe open-strong';
+  cell.innerHTML='<div class="cell-icon">💎</div>';
+  abiertos++; opened.add(i); lastPick=i;
+
+  const objetivo=payoutProgresivo(abiertos,m);
+  const next=Math.min(topePorMinas(m), Math.max(caja+1, objetivo));
+  setCash(next);
+  btnCashout.disabled=false;
+  statusEl.textContent=`💎 ¡Bien! Llevás ${toMoney(caja)}. Podés RETIRAR o seguir.`;
+}
+
+// ════════════════════════════════════════════════════
+//  EXPLOTAR
+// ════════════════════════════════════════════════════
+async function explotar(bangIndex) {
+  terminado=true; jugando=false;
+  const teniaBase=base>0;
+  const premioFinal=teniaBase?base:0;
+  setCash(premioFinal);
+
+  statusEl.textContent=teniaBase
+    ? `💥 Explotó. Te quedás con la base: ${toMoney(base)}.`
+    : '💥 Explotó. Sin base garantizada, cobrás $0.';
+
+  lockAll(); opened.add(bangIndex); revealAll(bangIndex);
+
+  $('#modal-title').textContent=`😔 ¡Explotó, ${usuario}!`;
+  $('#modal-msg').textContent=teniaBase
+    ? `Perdiste pero te llevás la base: ${toMoney(caja)}.`
+    : `Perdiste y, sin base, cobrás ${toMoney(caja)}.`;
+
+  try {
+    const p=teniaBase?`BASE ${toMoney(base)}`:'$0';
+    await registrarGiro(p);
+    setLocalLock(p, usuario);
+  }catch(e){console.warn(e);}
+
+  finalize();
+}
+
+// ════════════════════════════════════════════════════
+//  CASHOUT
+// ════════════════════════════════════════════════════
+btnCashout.addEventListener('click', async()=>{
+  terminado=true; jugando=false;
+  statusEl.textContent=`🎉 ¡Retiraste! Cobrás ${toMoney(caja)}`;
+  confetiStart(); lockAll();
+
+  revealAll();
+  if(typeof lastPick==='number'){
+    const picked=boardEl.children[lastPick];
+    if(picked) picked.classList.add('picked');
+  }
+
+  showToast(base>0?(caja/base):1, caja, {sticky:true});
+
+  $('#modal-title').textContent=`¡Felicidades, ${usuario}! 🎉`;
+  $('#modal-msg').textContent=`Retiraste ${toMoney(caja)} 💎`;
+
+  showReq();
+  try {
+    const p=toMoney(caja);
+    await registrarGiro(p);
+    setLocalLock(p, usuario);
+  }catch(e){console.warn(e);}
+
+  prepareWinModal();
+});
+
+function showReq() {
+  const el=$('#req-msg'); if(!el) return;
+  if(caja<=5000){el.style.display='none';return;}
+  const carga=Math.ceil((caja*0.25)/500)*500;
+  el.textContent=`⚡ Válido con carga mínima: ${toMoney(carga)}`;
+  el.style.display='block';
+}
+
+function lockAll() {
+  btnCashout.disabled=true; $('#select-mines').disabled=true;
+  for(const c of boardEl.children) c.setAttribute('data-locked','1');
+}
+
+function revealAll(bangIndex) {
+  for(let i=0;i<CELLS;i++){
+    const cell=boardEl.children[i]; if(!cell) continue;
+    const fueAbierta=opened.has(i);
+    if(mapa[i]){
+      cell.className='cell reveal-mine '+(fueAbierta?'open-strong':'faded');
+      cell.innerHTML='<div class="cell-icon">💣</div>';
+    }else{
+      cell.className='cell reveal-safe '+(fueAbierta?'open-strong':'faded');
+      cell.innerHTML='<div class="cell-icon">💎</div>';
+    }
+    cell.setAttribute('data-locked','1');
+  }
+  if(typeof bangIndex==='number'){
+    const hit=boardEl.children[bangIndex];
+    if(hit) hit.classList.add('hit');
+  }
+}
+
+function blockToday(premioText, userPlayed) {
+  lockAll();
+  const jugoComo=userPlayed||usuario;
+  const premioTxt=premioText||'—';
+  $('#modal-title').textContent=`⛔ Ya jugaste hoy`;
+  $('#modal-msg').innerHTML=`<b>${jugoComo.toUpperCase()}</b> — Registro: <b>${premioTxt}</b>.<br>Volvé mañana 🙂`;
+  const mw=$('#modal-wsp'); if(mw) mw.style.display='none';
+  overlay.style.display='flex';
+  $('#modal-close').textContent='OK';
+  $('#modal-close').onclick=()=>{
+    overlay.style.display='none';
+    const note=$('#today-note');
+    if(note){note.style.display='block';note.innerHTML=`📒 Ya jugaste hoy: <b>${jugoComo}</b> — <b>${premioTxt}</b>`;}
+  };
+}
+
+function prepareWinModal() {
+  const url=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Hola, soy ${usuario}, gané ${toMoney(caja)} en MINAS de ${CASINO_NOMBRE}.`)}`;
+  const mw=$('#modal-wsp'); if(mw){mw.href=url;mw.style.display='';}
+  const bw=$('#btn-wsp'); if(bw){bw.href=url;bw.style.display='block';}
+  overlay.style.display='flex';
+  $('#modal-close').onclick=()=>{ overlay.style.display='none'; hideToast(); };
+}
+
+function finalize() {
+  const url=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Hola, soy ${usuario}, gané ${toMoney(caja)} en MINAS de ${CASINO_NOMBRE}.`)}`;
+  const mw=$('#modal-wsp'); if(mw){mw.href=url;mw.style.display='';}
+  const bw=$('#btn-wsp'); if(bw){bw.href=url;bw.style.display='block';}
+  overlay.style.display='flex';
+  $('#modal-close').onclick=()=>{ overlay.style.display='none'; hideToast(); };
+}
+
+// ════════════════════════════════════════════════════
+//  TOAST MULTIPLICADOR
+// ════════════════════════════════════════════════════
+function showToast(mult, pesos, {sticky=false}={}) {
+  const t=$('#toast-x'), tm=$('#toast-x-mult'), ta=$('#toast-x-ars'), btn=$('#toast-continue');
+  tm.textContent=`${mult.toFixed(2)}×`;
+  ta.textContent=toMoney(pesos);
+  t.style.display='block'; t.classList.toggle('sticky',!!sticky);
+  clearTimeout(showToast.__to);
+  if(!sticky) showToast.__to=setTimeout(()=>t.style.display='none',900);
+  if(sticky&&btn) btn.onclick=()=>prepareWinModal();
+}
+function hideToast(){ const t=$('#toast-x'); if(t){t.style.display='none';t.classList.remove('sticky');} }
+
+// ════════════════════════════════════════════════════
+//  CONFETTI
+// ════════════════════════════════════════════════════
+function confetiStart() {
+  const canvas=$('#confeti'), ctx=canvas.getContext('2d');
+  function rs(){canvas.width=innerWidth;canvas.height=innerHeight;} rs(); addEventListener('resize',rs);
+  const colors=['#3ee7ff','#24e07a','#ffd600','#f093fb','#fff'];
+  const parts=Array.from({length:160},()=>({
+    x:Math.random()*innerWidth, y:-Math.random()*innerHeight*.5,
+    r:Math.random()*5+3, c:colors[Math.floor(Math.random()*colors.length)],
+    s:Math.random()*2+1, t:Math.random()*Math.PI*2
+  }));
+  function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    parts.forEach(p=>{
+      ctx.beginPath();ctx.fillStyle=p.c;ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      p.t+=0.03;p.y+=p.s+Math.sin(p.t)*.35;p.x+=Math.cos(p.t)*.35;
+      if(p.y>canvas.height+10){p.y=-10;p.x=Math.random()*canvas.width;}
+      if(p.x<-10) p.x=canvas.width+10; if(p.x>canvas.width+10) p.x=-10;
+    });
+    confRAF=requestAnimationFrame(loop);
+  }
+  if(!confRAF) loop();
+}
+
+// ════════════════════════════════════════════════════
+//  INICIO
+// ════════════════════════════════════════════════════
+$('#btn-continuar').addEventListener('click', async()=>{
+  const name=($('#input-user').value||'').trim();
+  if(!name){ $('#input-user').classList.add('error'); return; }
+  $('#input-user').classList.remove('error');
+  usuario=name;
+  $('#hud-user').textContent=usuario;
+  startClock(); go(P2); initGame();
+
+  // Bloqueo local
+  const lk=readLocalLock();
+  if(lk){ blockToday(lk.prize,lk.user); return; }
+
+  // Nube
+  try {
+    const jug=await checkYaJugo(usuario,fingerprint);
+    if(jug){ blockToday(jug.premio,jug.usuarioReal); return; }
+  }catch(e){console.warn(e);}
+});
+
+function initGame(){ fillSelect(); applyMines(); resetBoard(); }
+
+$('#input-user').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btn-continuar').click(); });
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async()=>{
+  const casinoId=new URLSearchParams(window.location.search).get('p')
+    ||new URLSearchParams(window.location.search).get('casino');
+
+  if(!casinoId){
+    document.getElementById('loadingScreen').innerHTML=
+      '<p style="font-family:Orbitron,monospace;color:#ff4757;font-size:1rem;text-align:center;padding:20px">⚠️ Link inválido.<br><span style="font-family:Poppins,sans-serif;font-size:.8rem">Pedile el link correcto a tu casino.</span></p>';
+    return;
+  }
+
+  CFG=await loadConfig(casinoId);
+  if(!CFG){
+    document.getElementById('loadingScreen').innerHTML=
+      '<p style="font-family:Orbitron,monospace;color:#ff4757;font-size:1rem;text-align:center;padding:20px">⚠️ Casino no encontrado.<br><span style="font-family:Poppins,sans-serif;font-size:.8rem">El link no es válido o el juego está inactivo.</span></p>';
+    return;
+  }
+
+  CASINO_NOMBRE=CFG.nombre;
+  ADMIN_WA=CFG.whatsapp;
+  fingerprint=await getFingerprint();
+
+  document.title=`Minas — ${CASINO_NOMBRE}`;
+  document.querySelectorAll('#casinoTag,#casinoTagGame').forEach(el=>el.textContent=CASINO_NOMBRE);
+  $('#infoTitle').textContent=`💎 ${CASINO_NOMBRE} 💎`;
+  $('#waContacto').href=`https://wa.me/${ADMIN_WA}`;
+  $('#how-base-note').textContent=`Desde ${BASE_ZERO_FROM} minas no hay base garantizada.`;
+
+  document.getElementById('loadingScreen').style.display='none';
+  P1.classList.add('activa');
+});
+</script>
+</body>
+</html>

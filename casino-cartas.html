@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+  <title>Cartas Casino</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold:#f0c040; --gold2:#ffd700; --gold3:#b8860b;
+      --dark:#070500; --dark2:#0f0b00; --dark3:#1a1200;
+      --panel:#120e00; --edge:#3a2a00; --edge2:#5a4200;
+      --text:#fff8e7; --muted:#a08040; --green:#25D366;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#1a1200 0%,#070500 60%,#000 100%);color:var(--text);font-family:'Inter',Arial,sans-serif;}
+
+    .bg-stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .bg-stars span{position:absolute;width:2px;height:2px;border-radius:50%;background:var(--gold);opacity:0;animation:twinkle var(--d,3s) var(--delay,0s) infinite}
+    @keyframes twinkle{0%,100%{opacity:0}50%{opacity:.6}}
+
+    .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:16px 14px 40px}
+
+    /* LOADING */
+    #loadingScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:85vh;gap:16px}
+    .spin-loader{width:48px;height:48px;border:4px solid var(--edge2);border-top-color:var(--gold);border-radius:50%;animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-txt{color:var(--muted);font-size:13px;letter-spacing:1px}
+
+    /* HEADER */
+    .casino-name{font-family:'Cinzel',serif;font-size:clamp(20px,5.5vw,30px);font-weight:900;color:var(--gold);text-align:center;text-shadow:0 0 20px rgba(240,192,64,.6);letter-spacing:2px;margin-bottom:2px}
+    .casino-sub{text-align:center;font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px}
+    .crown{font-size:26px;display:block;text-align:center;margin-bottom:6px;animation:float 3s ease-in-out infinite}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+    /* PANEL */
+    .panel{background:linear-gradient(180deg,var(--panel),var(--dark2));border:1px solid var(--edge2);border-radius:18px;box-shadow:0 0 40px rgba(240,192,64,.06),0 20px 60px rgba(0,0,0,.6);padding:20px 16px;margin-bottom:14px}
+    .panel-gold{background:linear-gradient(180deg,#1a1400,#0f0b00);border:1px solid var(--gold3);box-shadow:0 0 30px rgba(240,192,64,.12)}
+
+    /* INPUT */
+    .inp{width:100%;background:var(--dark3);border:1px solid var(--edge2);border-radius:12px;padding:14px 16px;color:var(--text);font-size:15px;font-weight:700;outline:none;text-align:center;font-family:'Inter',sans-serif}
+    .inp::placeholder{color:var(--muted);font-weight:600}
+    .inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,192,64,.15)}
+    .inp.error{border-color:#ef4444}
+
+    /* BOTONES */
+    .btn-gold{width:100%;padding:15px;border-radius:14px;border:0;background:linear-gradient(135deg,var(--gold2),var(--gold3));color:#0a0600;font-weight:900;font-size:16px;cursor:pointer;letter-spacing:.5px;box-shadow:0 0 20px rgba(255,215,0,.25);transition:all .2s;font-family:'Cinzel',serif;text-transform:uppercase;margin-top:12px}
+    .btn-gold:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 30px rgba(255,215,0,.45)}
+    .btn-wa{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:14px;border:0;background:var(--green);color:#fff;font-weight:800;font-size:15px;text-decoration:none;box-shadow:0 0 20px rgba(37,211,102,.2);transition:all .2s;font-family:'Inter',sans-serif}
+    .btn-wa:hover{transform:translateY(-2px)}
+
+    /* HUD */
+    .hud{display:flex;gap:10px;margin-bottom:14px}
+    .hud-item{flex:1;background:var(--dark3);border:1px solid var(--edge);border-radius:10px;padding:8px 10px;text-align:center}
+    .hud-label{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+    .hud-val{font-size:13px;font-weight:800;color:var(--gold);margin-top:2px;word-break:break-all}
+
+    /* PREMIOS LISTA */
+    .prizes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px}
+    .prize-pill{padding:8px 4px;border-radius:10px;text-align:center;font-size:10px;font-weight:800;display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid rgba(255,255,255,.08)}
+    .prize-pill .emoji{font-size:16px}
+    .prize-pill .pname{background:rgba(0,0,0,.5);border-radius:4px;padding:2px 4px;line-height:1.2}
+
+    /* GRILLA DE CARTAS */
+    .card-grid-wrap{border:1px solid var(--gold3);border-radius:14px;padding:12px;background:rgba(0,0,0,.3)}
+    .card-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+    .card{aspect-ratio:3/4;border-radius:10px;perspective:800px;cursor:pointer}
+    .card-inner{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d}
+    .card.flipped .card-inner{transform:rotateY(180deg)}
+    .card-front,.card-back{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;backface-visibility:hidden;border:2px solid var(--gold3)}
+    .card-front{background:linear-gradient(145deg,#1a1200,#0a0800);color:var(--gold)}
+    .card-front .gem{font-size:clamp(18px,4vw,26px)}
+    .card-back{transform:rotateY(180deg)}
+    .card-back .emoji{font-size:clamp(16px,3.5vw,22px);margin-bottom:3px}
+    .card-back .label{font-size:8px;font-weight:800;background:rgba(0,0,0,.6);border-radius:4px;padding:2px 4px;text-align:center;line-height:1.2;color:#fff}
+    .card.win .card-back{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.8),0 0 16px rgba(255,255,255,.4)}
+    .card.win{opacity:1!important;filter:none!important}
+    .card.dim:not(.win){opacity:.3;filter:grayscale(.5)}
+    .card.disabled{opacity:.4;pointer-events:none;filter:grayscale(1)}
+
+    /* RESULTADO */
+    .result-box{display:none;margin-top:14px;background:linear-gradient(180deg,#1a1200,#0f0b00);border:1px solid var(--gold3);border-radius:16px;padding:18px;text-align:center;animation:popIn .4s cubic-bezier(.2,1,.2,1)}
+    @keyframes popIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+    .result-title{font-family:'Cinzel',serif;font-size:18px;font-weight:900;color:var(--gold);margin-bottom:8px}
+    .result-prize{font-size:22px;font-weight:900;color:#fff;margin-bottom:12px}
+    .result-sub{font-size:11px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+
+    /* INFO BOX */
+    .info-box{background:linear-gradient(135deg,#1a1200,#0f0800);border:1px solid var(--gold3);border-radius:16px;padding:14px;text-align:center;margin-bottom:14px}
+    .info-title{font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin-bottom:4px;font-weight:700}
+    .info-sub{font-size:12px;color:var(--muted);line-height:1.5}
+
+    #confetti{position:fixed;inset:0;pointer-events:none;z-index:99;display:none}
+
+    @media(min-width:900px){body::after{content:"Diseñado para móvil. Abrilo desde el celular.";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.92);color:var(--gold);font-size:18px;font-weight:800;font-family:'Cinzel',serif;letter-spacing:2px;z-index:999}}
+  </style>
+</head>
+<body>
+<div class="bg-stars" id="bgStars"></div>
+<canvas id="confetti" width="0" height="0"></canvas>
+
+<div class="wrap">
+
+  <!-- LOADING -->
+  <div id="loadingScreen">
+    <div class="spin-loader"></div>
+    <p class="loading-txt">Cargando casino...</p>
+  </div>
+
+  <!-- INICIO -->
+  <div id="userSection" style="display:none">
+    <span class="crown">👑</span>
+    <div class="casino-name" id="casinoNameWelcome">CASINO</div>
+    <div class="casino-sub">Cartas — 3 iguales ganan</div>
+
+    <div class="panel panel-gold">
+      <input id="usernameInput" class="inp" placeholder="Ingresá tu usuario" autocomplete="off"/>
+      <button class="btn-gold" onclick="startGame()">🃏 ENTRAR AL CASINO 🃏</button>
+    </div>
+
+    <div class="info-box">
+      <div class="info-title" id="infoTitle">💛 CASINO 💛</div>
+      <div class="info-sub">LÍNEA ACTIVA 24HS · TODOS LOS PREMIOS SE PAGAN AL INSTANTE</div>
+      <div style="margin-top:10px">
+        <a class="btn-wa" id="waContacto" href="#" target="_blank">📞 Contactanos por WhatsApp</a>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:14px">
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;letter-spacing:1px">PREMIOS POSIBLES</div>
+      <div class="prizes-grid" id="prizesGridWelcome"></div>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div id="gameSection" style="display:none">
+    <span class="crown">👑</span>
+    <div class="casino-name" id="casinoNameGame">CASINO</div>
+    <div class="casino-sub">Cartas — 3 iguales ganan</div>
+
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">Usuario</div>
+        <div class="hud-val" id="userLabel">—</div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">Fecha y hora</div>
+        <div class="hud-val" id="clockLabel">—</div>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:14px">
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:8px;letter-spacing:1px">PREMIOS POSIBLES</div>
+      <div class="prizes-grid" id="prizesGridGame"></div>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin:10px 0 6px">🎯 Desbloqueá las cartas — ¡3 iguales ganan!</div>
+      <div class="card-grid-wrap">
+        <div class="card-grid" id="cardGrid"></div>
+      </div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-title" id="resultTitle">🎉 ¡FELICIDADES!</div>
+      <div class="result-prize" id="resultPrize">—</div>
+      <div class="result-sub">📸 Sacá captura y reclamá tu premio</div>
+      <a class="btn-wa" id="waReclamar" href="#" target="_blank">💬 Reclamar premio</a>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO_NOMBRE = '', ADMIN_WA = '';
+const JUEGO = 'cartas';
+
+// Premios default — idénticos al original
+const PREMIOS_DEFAULT = [
+  { nombre:'2.500 GRATIS',   emoji:'🎁', fondo:'#4CAF50', cantidad:4 },
+  { nombre:'100% BONI',      emoji:'💣', fondo:'#E91E63', cantidad:3 },
+  { nombre:'50% BONI',       emoji:'🎰', fondo:'#FF9800', cantidad:3 },
+  { nombre:'20% BONI',       emoji:'❄️', fondo:'#f44336', cantidad:4 },
+  { nombre:'10.000 GRATIS',  emoji:'💰', fondo:'#2196F3', cantidad:3 },
+  { nombre:'5.000 GRATIS',   emoji:'🎈', fondo:'#a35de0', cantidad:3 },
+  { nombre:'100.000 GRATIS', emoji:'🧨', fondo:'#FFD700', cantidad:2 },
+  { nombre:'500.000 GRATIS', emoji:'👑', fondo:'#212121', cantidad:2 }
+];
+
+let PREMIOS = [...PREMIOS_DEFAULT];
+let username = '';
+let fingerprint = '';
+let ganador = false;
+let selected = [];
+
+const $ = id => document.getElementById(id);
+
+// ════════════════════════════════════════════════════
+//  FONDO ESTRELLADO
+// ════════════════════════════════════════════════════
+function buildStars() {
+  const cont = $('bgStars');
+  for(let i=0;i<60;i++){
+    const s=document.createElement('span');
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*4}s;--delay:${Math.random()*4}s`;
+    cont.appendChild(s);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  premios_cartas: JSON array
+//  [{"nombre":"2.500 GRATIS","emoji":"🎁","fondo":"#4CAF50","cantidad":4},...]
+//  cantidad = cuántas cartas de ese tipo hay en el mazo
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(casinoId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', casinoId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  if (!data.premios_cartas) {
+    data.premios_cartas = PREMIOS_DEFAULT;
+  } else if (typeof data.premios_cartas === 'string') {
+    try { data.premios_cartas = JSON.parse(data.premios_cartas); }
+    catch { data.premios_cartas = PREMIOS_DEFAULT; }
+  }
+
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA AR
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return { fecha, horaISO:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`, horaUTC:now.toISOString(), display:`${get('day')}/${get('month')} ${get('hour')}:${get('minute')}` };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function getFingerprint() {
+  try {
+    const txt=[navigator.userAgent,navigator.platform,screen.width,screen.height,Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function blockKeyUser(u,fp){ const {fecha}=nowAR(); return `casino:${fecha}:${CASINO_NOMBRE}:${JUEGO}:user:${u}:${fp}`; }
+function blockKeyDev(fp)    { const {fecha}=nowAR(); return `casino:${fecha}:${CASINO_NOMBRE}:${JUEGO}:dev:${fp}`; }
+function setPlayed(u,fp)    { localStorage.setItem(blockKeyUser(u,fp),'1'); localStorage.setItem(blockKeyDev(fp),'1'); }
+function isPlayed(u,fp)     { return !!localStorage.getItem(blockKeyUser(u,fp))||!!localStorage.getItem(blockKeyDev(fp)); }
+
+async function checkYaJugo(user,fp) {
+  const {fecha}=nowAR();
+  const {data,error}=await sb.from('giros').select('usuario,premio').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${user},fingerprint.eq.${fp}`).order('id',{ascending:false}).limit(1);
+  if(error) return null;
+  return data?.[0]||null;
+}
+
+async function registrarGiro(user,fp,premio) {
+  const {fecha,horaISO,horaUTC}=nowAR();
+  await sb.from('giros').insert([{usuario:user,fingerprint:fp,premio,fecha,hora:horaISO,hora_local:horaISO,hora_utc:horaUTC,pasador_id:CFG.pasador_id,casino:CASINO_NOMBRE,juego:JUEGO}]);
+}
+
+// ════════════════════════════════════════════════════
+//  UI — PREMIOS GRID
+// ════════════════════════════════════════════════════
+function renderPrizesGrid(containerId) {
+  const cont=$(containerId); if(!cont) return;
+  cont.innerHTML=PREMIOS.map(p=>`
+    <div class="prize-pill" style="background:${p.fondo}">
+      <span class="emoji">${p.emoji}</span>
+      <span class="pname">${p.nombre}</span>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function updateClock(){ $('clockLabel').textContent=nowAR().display; }
+
+// ════════════════════════════════════════════════════
+//  CARTAS — idéntico al original + mejoras visuales
+// ════════════════════════════════════════════════════
+function buildDeck() {
+  const deck=[];
+  PREMIOS.forEach(p=>{ for(let i=0;i<p.cantidad;i++) deck.push({...p}); });
+  for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+  return deck;
+}
+
+function loadCards() {
+  const grid=$('cardGrid'); grid.innerHTML='';
+  selected=[]; ganador=false;
+  const deck=buildDeck();
+
+  deck.forEach(carta=>{
+    const el=document.createElement('div'); el.className='card';
+    el.dataset.tipo=carta.nombre; el.dataset.emoji=carta.emoji; el.dataset.color=carta.fondo;
+    el.onclick=()=>flipCard(el);
+
+    const inner=document.createElement('div'); inner.className='card-inner';
+    const front=document.createElement('div'); front.className='card-front';
+    front.innerHTML='<div class="gem">💎</div>';
+    const back=document.createElement('div'); back.className='card-back';
+    back.style.background=carta.fondo;
+    back.innerHTML=`<div class="emoji">${carta.emoji}</div><div class="label">${carta.nombre}</div>`;
+
+    inner.appendChild(front); inner.appendChild(back); el.appendChild(inner);
+    grid.appendChild(el);
+  });
+}
+
+function flipCard(card) {
+  if(card.classList.contains('flipped')||ganador) return;
+  card.classList.add('flipped');
+
+  const tipo=card.dataset.tipo;
+  selected.push(tipo);
+
+  const count=selected.reduce((a,n)=>((a[n]=(a[n]||0)+1),a),{});
+
+  if(count[tipo]===3 && !ganador){
+    ganador=true;
+
+    // Marcar ganadoras y atenuar resto
+    const ganadoras=[...document.querySelectorAll('.card.flipped')].filter(c=>c.dataset.tipo===tipo).slice(0,3);
+    ganadoras.forEach(c=>c.classList.add('win'));
+    document.querySelectorAll('.card').forEach(c=>{ if(!ganadoras.includes(c)) c.classList.add('dim'); c.onclick=null; });
+
+    // Mostrar resultado
+    $('resultTitle').innerHTML='🎉 ¡FELICIDADES!';
+    $('resultPrize').textContent=`${card.dataset.emoji} ${tipo}`;
+    $('resultBox').style.display='block';
+
+    const msg=`Hola! Soy el usuario ${username}. Gané ${card.dataset.emoji} ${tipo} en CARTAS de ${CASINO_NOMBRE}. Quiero reclamar mi premio.`;
+    $('waReclamar').href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+
+    registrarGiro(username, fingerprint, `${card.dataset.emoji} ${tipo}`);
+    setPlayed(username, fingerprint);
+    launchConfetti();
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  CONFETTI
+// ════════════════════════════════════════════════════
+function launchConfetti() {
+  const cvs=$('confetti'), ctx=cvs.getContext('2d');
+  const DPR=Math.max(1,window.devicePixelRatio||1);
+  cvs.style.display='block'; cvs.width=Math.floor(innerWidth*DPR); cvs.height=Math.floor(innerHeight*DPR);
+  const colors=['#f0c040','#ffd700','#fff','#ff6b35','#c084fc','#25D366'];
+  const parts=Array.from({length:100},()=>({x:Math.random()*cvs.width,y:-20,r:3+Math.random()*5,vx:(-1+Math.random()*2)*DPR,vy:(2+Math.random()*4)*DPR,rot:Math.random()*360,vr:(-3+Math.random()*6),color:colors[Math.floor(Math.random()*colors.length)]}));
+  const t0=performance.now();
+  function step(t){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.04*DPR; p.rot+=p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color; ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore(); });
+    if(t-t0<3000) requestAnimationFrame(step);
+    else{ cvs.style.display='none'; ctx.clearRect(0,0,cvs.width,cvs.height); }
+  }
+  requestAnimationFrame(step);
+}
+
+// ════════════════════════════════════════════════════
+//  INICIAR JUEGO
+// ════════════════════════════════════════════════════
+async function startGame() {
+  const val=$('usernameInput').value.trim();
+  if(!val){ $('usernameInput').classList.add('error'); return; }
+  $('usernameInput').classList.remove('error');
+  username=val;
+
+  $('userSection').style.display='none';
+  $('gameSection').style.display='block';
+  $('userLabel').textContent=username.toUpperCase();
+  updateClock(); setInterval(updateClock,1000);
+
+  renderPrizesGrid('prizesGridGame');
+  loadCards();
+
+  // Verificar bloqueo
+  const yaJugo=await checkYaJugo(username,fingerprint);
+  if(isPlayed(username,fingerprint)||yaJugo){
+    const premio=yaJugo?.premio||'—';
+    document.querySelectorAll('.card').forEach(c=>{ c.classList.add('disabled'); c.onclick=null; });
+    $('resultTitle').textContent='✅ Ya jugaste hoy';
+    $('resultPrize').textContent=`Resultado: ${premio}`;
+    $('resultBox').style.display='block';
+    const msg=`Hola! Soy el usuario ${username}. Ya jugué hoy en ${CASINO_NOMBRE}.`;
+    $('waReclamar').href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async()=>{
+  buildStars();
+
+  const casinoId=new URLSearchParams(window.location.search).get('p')
+    ||new URLSearchParams(window.location.search).get('casino');
+
+  if(!casinoId){
+    $('loadingScreen').innerHTML=`<div style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-family:'Cinzel',serif;color:var(--gold);font-size:16px">Link inválido</p><p style="color:var(--muted);font-size:13px;margin-top:8px">Pedile el link correcto a tu casino.</p></div>`;
+    return;
+  }
+
+  CFG=await loadConfig(casinoId);
+
+  if(!CFG){
+    $('loadingScreen').innerHTML=`<div style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-family:'Cinzel',serif;color:var(--gold);font-size:16px">Casino no encontrado</p><p style="color:var(--muted);font-size:13px;margin-top:8px">El link no es válido o el juego está inactivo.</p></div>`;
+    return;
+  }
+
+  CASINO_NOMBRE=CFG.nombre;
+  ADMIN_WA=CFG.whatsapp;
+  PREMIOS=CFG.premios_cartas;
+
+  fingerprint=await getFingerprint();
+
+  document.title=`${CASINO_NOMBRE} — Cartas`;
+  ['casinoNameWelcome','casinoNameGame'].forEach(id=>{ const el=$(id); if(el) el.textContent=CASINO_NOMBRE; });
+  $('infoTitle').textContent=`💛 ${CASINO_NOMBRE} 💛`;
+  $('waContacto').href=`https://wa.me/${ADMIN_WA}`;
+
+  renderPrizesGrid('prizesGridWelcome');
+
+  $('loadingScreen').style.display='none';
+  $('userSection').style.display='block';
+
+  $('usernameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') startGame(); });
+});
+</script>
+</body>
+</html>

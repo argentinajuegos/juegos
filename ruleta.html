@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Ruleta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{ --panel:#0b1224; --panel2:#0a1226; --edge:#18254a; --text:#eaf1ff; --muted:#9fb0d8; --r:18px; }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:linear-gradient(180deg,#060b16 0%,#0b1220 60%,#08101d 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{min-height:100dvh}
+    .container{max-width:520px;margin:8px auto 16px;padding:12px}
+    .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:var(--r);box-shadow:0 18px 40px rgba(0,0,0,.5);padding:14px}
+    .brandTitle{font-size:26px;font-weight:900;margin:0 0 6px}
+    .subline{font-size:14px;font-weight:900;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:900}
+    .pill-pass{background:rgba(34,255,122,.14);color:#22ff7a;border:1px solid rgba(34,255,122,.35)}
+    .status{font-weight:900;font-size:14px;opacity:.95;margin-top:6px;line-height:1.35}
+    #welcome{display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+    .input{width:100%;background:#0a1426;color:var(--text);border:1px solid var(--edge);border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;outline:none}
+    .input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:0;font-weight:900;letter-spacing:.2px;background:linear-gradient(135deg,#facc15,#60a5fa);color:#0b0f1a;cursor:pointer}
+    #headerGame{display:none;margin-bottom:10px}
+    #game{display:none}
+    .wheelWrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+    .wheelBox{position:relative;display:grid;place-items:center}
+    #arrow{position:absolute;top:-22px;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:22px solid #ef4444;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+    canvas#wheel{width:min(86vw,380px);height:min(86vw,380px);background:radial-gradient(#0c162e,#0a1326);border:10px solid #e7c24a;border-radius:50%;box-shadow:0 10px 24px rgba(0,0,0,.4),inset 0 0 40px rgba(0,0,0,.45)}
+    .spinBtn{width:100%;padding:14px 16px;border-radius:14px;border:0;font-weight:900;background:linear-gradient(135deg,#22c55e,#16a34a);color:#04110a;cursor:pointer}
+    .spinBtn[disabled]{opacity:.55;filter:grayscale(.4)}
+    .msg{text-align:center;margin:8px 0 0;font-size:15px}
+    .result{margin-top:10px}
+    .result .box{border:1px solid #20345f;border-radius:16px;background:linear-gradient(180deg,#0f1f3a,#10324f);padding:14px;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.5)}
+    .result h3{margin:0 0 6px;font-size:18px}
+    .result p{margin:6px 0 12px;font-size:15px;color:#c9ffe5}
+    .wa{display:inline-block;background:#25D366;color:#072;font-weight:900;border-radius:12px;padding:12px 16px;text-decoration:none}
+    #loadingScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80dvh;gap:16px}
+    .spin{width:40px;height:40px;border:3px solid var(--edge);border-top-color:#facc15;border-radius:50%;animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .spin-txt{color:var(--muted);font-size:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="container">
+
+      <!-- LOADING -->
+      <div id="loadingScreen">
+        <div class="spin"></div>
+        <p class="spin-txt">Cargando...</p>
+      </div>
+
+      <!-- INICIO -->
+      <div id="welcome" class="panel" style="display:none">
+        <div class="subline">
+          <span id="welcomeNombre">---</span>
+          <span class="pill pill-pass" id="welcomePasador">---</span>
+        </div>
+        <h1 class="brandTitle">RULETA — Quiniela</h1>
+        <div class="status">Girá la ruleta y dejá que la suerte decida tu premio.</div>
+        <input id="phone" class="input" placeholder="Poné tu número" inputmode="numeric" />
+        <button id="start" class="btn">Empezar ▶</button>
+      </div>
+
+      <!-- HEADER EN JUEGO -->
+      <div id="headerGame" class="panel">
+        <h2 class="brandTitle">RULETA — Quiniela</h2>
+        <div class="subline">
+          <span id="headerNombre">---</span>
+          <span class="pill pill-pass" id="headerPasador">---</span>
+        </div>
+        <div class="status">
+          <div id="statusNumber">👤 Número: —</div>
+          <div id="statusTime">🕒 —/—/— —:—:—</div>
+        </div>
+      </div>
+
+      <!-- JUEGO -->
+      <div id="game" class="panel">
+        <div class="wheelWrap">
+          <div class="wheelBox">
+            <div id="arrow"></div>
+            <canvas id="wheel" width="420" height="420"></canvas>
+          </div>
+          <button id="spin" class="spinBtn">🎲 Girar</button>
+        </div>
+        <p id="msg" class="msg"></p>
+        <div id="result" class="result" style="display:none">
+          <div class="box">
+            <h3 id="rTitle">—</h3>
+            <p id="rText">—</p>
+            <a id="waBtn" class="wa" target="_blank" rel="noopener">📲 Reclamar por WhatsApp</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES — único lugar donde tocar código
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO = '', ADMIN_WA = '';
+const JUEGO = 'ruleta';
+
+// Colores de los segmentos — fijos, no cambian
+const SEG_COLORS = ['#FF3B30','#FF9500','#FFCC00','#34C759','#00C7BE','#007AFF','#5856D6','#FF2D55'];
+
+// Default idéntico al original
+const PREMIOS_ODDS_DEFAULT = { 500:25, 1000:25, 1500:20, 2000:15, 3000:10, 4000:5, 10000:0, 50000:0 };
+const SEG_VALUES_DEFAULT   = [500, 50000, 1000, 10000, 1500, 4000, 2000, 3000];
+
+let SEG_VALUES = [...SEG_VALUES_DEFAULT];
+let PREMIOS_ODDS = {...PREMIOS_ODDS_DEFAULT};
+
+let phone='', fp='', spinning=false, wheelAngle=0, ultimoHoy=null;
+const $ = s => document.querySelector(s);
+const onlyDigits = s => (s||'').replace(/\D+/g,'');
+const money = n => '$' + Number(n).toLocaleString('es-AR');
+const setMsg = html => { $('#msg').innerHTML = html; };
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  premios_odds: JSON {"500":25,"1000":25,"1500":20,"2000":15,"3000":10,"4000":5,"10000":0,"50000":0}
+//  seg_values:   JSON [500,50000,1000,10000,1500,4000,2000,3000]
+//  (orden en que aparecen los segmentos en la ruleta)
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(pasadorId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', pasadorId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  // Normalizar premios_odds
+  if (!data.premios_odds) {
+    data.premios_odds = PREMIOS_ODDS_DEFAULT;
+  } else if (typeof data.premios_odds === 'string') {
+    try { data.premios_odds = JSON.parse(data.premios_odds); }
+    catch { data.premios_odds = PREMIOS_ODDS_DEFAULT; }
+  }
+
+  // Normalizar seg_values
+  if (!data.seg_values) {
+    data.seg_values = SEG_VALUES_DEFAULT;
+  } else if (typeof data.seg_values === 'string') {
+    try { data.seg_values = JSON.parse(data.seg_values); }
+    catch { data.seg_values = SEG_VALUES_DEFAULT; }
+  }
+
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function tickClock() {
+  const dopt = { timeZone:'America/Argentina/Buenos_Aires', day:'2-digit', month:'2-digit', year:'numeric' };
+  const topt = { timeZone:'America/Argentina/Buenos_Aires', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+  $('#statusTime').textContent = `🕒 ${new Intl.DateTimeFormat('es-AR',dopt).format(new Date())}, ${new Intl.DateTimeFormat('es-AR',topt).format(new Date())}`;
+}
+setInterval(tickClock, 1000);
+
+// ════════════════════════════════════════════════════
+//  HORA ARGENTINA
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return { fecha, horaLocalNoTZ:`${fecha} ${get('hour')}:${get('minute')}:${get('second')}`, horaISOconOffset:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`, horaUTC:now.toISOString() };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function deviceFingerprint() {
+  try {
+    const txt=[navigator.userAgent,navigator.platform,screen.width,screen.height,Intl.DateTimeFormat().resolvedOptions().timeZone].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function blockKeyUser(u,f){ const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:user:${u}:${f}`; }
+function blockKeyDev(f){    const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:device:${f}`; }
+
+async function fetchUltimoDeHoy(usuario, fingerp) {
+  const {fecha}=nowAR();
+  const {data,error}=await sb.from('giros').select('usuario,premio').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${usuario},fingerprint.eq.${fingerp}`).order('id',{ascending:false}).limit(1);
+  if(error){ console.warn('fetchUltimoDeHoy',error); return null; }
+  return data&&data[0]?data[0]:null;
+}
+
+function textoYaJugo(u, reg) {
+  const quien=reg?.usuario||u, premio=reg?.premio?`<strong>${reg.premio}</strong>`:'—';
+  return `✅ Ya jugaste hoy como <strong>${quien}</strong>.<br>Último resultado: ${premio}.<br>💡 Volvé mañana para intentarlo de nuevo.`;
+}
+
+async function registrarGiro({ usuario, fingerp, premio }) {
+  const {fecha,horaLocalNoTZ,horaISOconOffset,horaUTC}=nowAR();
+  const {error}=await sb.from('giros').insert([{usuario,fingerprint:fingerp,premio,fecha,hora:horaISOconOffset,hora_local:horaLocalNoTZ,hora_utc:horaUTC,pasador_id:CFG.pasador_id,casino:CASINO,juego:JUEGO}]);
+  if(error){ console.warn('insert error',error); }
+}
+
+// ════════════════════════════════════════════════════
+//  CANVAS — idéntico al original
+// ════════════════════════════════════════════════════
+const wheel = document.getElementById('wheel');
+const ctx = wheel.getContext('2d');
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+}
+
+function drawWheel(angle=0, opts={}) {
+  const { highlightIndex=null, grayOthers=false } = opts;
+  const W=wheel.width, H=wheel.height, R=W/2;
+  ctx.clearRect(0,0,W,H);
+  const arc=2*Math.PI/SEG_VALUES.length;
+
+  ctx.save(); ctx.translate(R,R); ctx.rotate(angle); ctx.translate(-R,-R);
+  for(let i=0;i<SEG_VALUES.length;i++){
+    const start=i*arc, end=start+arc;
+    let baseColor=SEG_COLORS[i%SEG_COLORS.length];
+    if(grayOthers&&(highlightIndex===null||i!==highlightIndex)) baseColor='#2b364f';
+    ctx.beginPath(); ctx.moveTo(R,R); ctx.arc(R,R,R-6,start,end); ctx.closePath();
+    ctx.fillStyle=baseColor; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(R,R,R-6,0,2*Math.PI); ctx.lineWidth=12; ctx.strokeStyle='#e7c24a'; ctx.stroke();
+  ctx.restore();
+
+  for(let i=0;i<SEG_VALUES.length;i++){
+    const mid=i*arc+arc/2+angle, radius=R-80;
+    const cx=R+Math.cos(mid)*radius, cy=R+Math.sin(mid)*radius;
+    const label='$'+SEG_VALUES[i].toLocaleString('es-AR');
+    ctx.font='900 18px Inter,system-ui,sans-serif';
+    const tw=ctx.measureText(label).width, padX=10;
+    const bw=tw+padX*2, bh=30, rr=8;
+    const muted=grayOthers&&(highlightIndex===null||i!==highlightIndex);
+    ctx.fillStyle=muted?'#2b364f':'#ffffff';
+    ctx.strokeStyle=muted?'#2b364f':'#facc15';
+    ctx.lineWidth=2;
+    roundRect(ctx,cx-bw/2,cy-bh/2,bw,bh,rr);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle=muted?'#9aa7c4':'#0b1224';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label,cx,cy);
+  }
+
+  if(highlightIndex!==null){
+    ctx.save(); ctx.translate(R,R); ctx.rotate(angle); ctx.translate(-R,-R);
+    const start=highlightIndex*arc, end=start+arc;
+    ctx.beginPath(); ctx.moveTo(R,R); ctx.arc(R,R,R-6,start,end); ctx.closePath();
+    ctx.lineWidth=10; ctx.strokeStyle='#22c55e'; ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function weightedPick() {
+  const entries=Object.entries(PREMIOS_ODDS).map(([k,v])=>[+k,+v]);
+  const total=entries.reduce((a,[,w])=>a+w,0);
+  let r=Math.random()*total;
+  for(const [val,p] of entries){ if((r-=p)<=0) return val; }
+  return entries[0][0];
+}
+
+function angleForIndex(idx) {
+  const arc=2*Math.PI/SEG_VALUES.length;
+  const center=idx*arc+arc/2;
+  return -Math.PI/2-center;
+}
+function angleForValue(val) { return angleForIndex(SEG_VALUES.indexOf(val)); }
+
+async function spinTo(value) {
+  if(spinning) return;
+  spinning=true; $('#spin').disabled=true; setMsg('Girando...');
+  const target=angleForValue(value), nowBase=wheelAngle%(2*Math.PI);
+  let targetExact=nowBase+4*2*Math.PI+(target-nowBase);
+  while(targetExact-nowBase<4*2*Math.PI) targetExact+=2*Math.PI;
+  const D1=1200, D2=6600;
+  const midAngle=nowBase+(targetExact-nowBase)*0.25;
+  const easeInQuad=t=>t*t, easeOutCubic=t=>1-Math.pow(1-t,3);
+
+  await new Promise(resolve=>{
+    const t0=performance.now();
+    function step(t){ const p=Math.min(1,(t-t0)/D1); wheelAngle=nowBase+(midAngle-nowBase)*easeInQuad(p); drawWheel(wheelAngle); if(p<1) requestAnimationFrame(step); else resolve(); }
+    requestAnimationFrame(step);
+  });
+  await new Promise(resolve=>{
+    const t1=performance.now();
+    function step2(t){ const p=Math.min(1,(t-t1)/D2); wheelAngle=midAngle+(targetExact-midAngle)*easeOutCubic(p); drawWheel(wheelAngle); if(p<1) requestAnimationFrame(step2); else resolve(); }
+    requestAnimationFrame(step2);
+  });
+
+  wheelAngle=targetExact;
+  const idx=SEG_VALUES.indexOf(value);
+  drawWheel(wheelAngle,{highlightIndex:idx,grayOthers:true});
+  mostrarResultado(value);
+  registrarGiro({usuario:phone, fingerp:fp, premio:money(value)});
+  localStorage.setItem(blockKeyUser(phone,fp),'1');
+  localStorage.setItem(blockKeyDev(fp),'1');
+  spinning=false; $('#spin').disabled=true;
+}
+
+function mostrarResultado(valor) {
+  const premioTxt=money(valor);
+  setMsg(`Resultado: <strong>${premioTxt}</strong>`);
+  $('#rTitle').textContent='🎉 ¡Resultado del giro!';
+  $('#rText').innerHTML=`Te tocó <strong>${premioTxt}</strong>.`;
+  const wa=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(`Hola, soy ${phone}. Me salió ${premioTxt} en RULETA — ${CASINO}.`)}`;
+  $('#waBtn').href=wa; $('#result').style.display='block';
+}
+
+// ════════════════════════════════════════════════════
+//  PINTAR NOMBRE Y PASADOR
+// ════════════════════════════════════════════════════
+function splitNombrePasador(nombre) {
+  const match=nombre.match(/^(.*?)(\d+)\s*$/);
+  if(match) return { nombre:match[1].trim(), pasador:match[2] };
+  return { nombre, pasador:'' };
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const pasadorId = new URLSearchParams(window.location.search).get('p')
+    || new URLSearchParams(window.location.search).get('pasador');
+
+  if (!pasadorId) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Link inválido</p><p style="color:var(--muted);font-size:13px">Pedile el link correcto a tu pasador.</p></div>`;
+    return;
+  }
+
+  CFG = await loadConfig(pasadorId);
+
+  if (!CFG) {
+    $('#loadingScreen').innerHTML=`<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Juego no encontrado</p><p style="color:var(--muted);font-size:13px">El link no es válido o el juego está inactivo.</p></div>`;
+    return;
+  }
+
+  // Aplicar config
+  CASINO    = CFG.nombre;
+  ADMIN_WA  = CFG.whatsapp;
+  SEG_VALUES   = CFG.seg_values;
+  PREMIOS_ODDS = CFG.premios_odds;
+
+  document.title = `${CASINO} — Ruleta`;
+
+  const { nombre, pasador } = splitNombrePasador(CASINO);
+  ['#welcomeNombre','#headerNombre'].forEach(sel=>{ const el=$(sel); if(el) el.textContent=nombre; });
+  ['#welcomePasador','#headerPasador'].forEach(sel=>{ const el=$(sel); if(el) el.textContent=pasador; });
+
+  $('#loadingScreen').style.display='none';
+  $('#welcome').style.display='flex';
+
+  drawWheel();
+
+  // BOTÓN INICIAR
+  $('#start').addEventListener('click', async () => {
+    const input=$('#phone'); phone=onlyDigits(input.value.trim());
+    if(!phone){ input.classList.add('error'); input.focus(); return; }
+    input.classList.remove('error');
+    fp=await deviceFingerprint();
+    $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
+    ultimoHoy=await fetchUltimoDeHoy(phone,fp);
+    $('#welcome').style.display='none'; $('#headerGame').style.display='block'; $('#game').style.display='block';
+    if(localStorage.getItem(blockKeyUser(phone,fp))||localStorage.getItem(blockKeyDev(fp))||ultimoHoy){
+      setMsg(textoYaJugo(phone,ultimoHoy)); $('#spin').disabled=true;
+    } else {
+      setMsg('Listo, tocá <strong>Girar</strong>.');
+    }
+    drawWheel();
+  });
+
+  $('#phone').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#start').click(); });
+
+  $('#spin').addEventListener('click', ()=>{
+    if(ultimoHoy){ setMsg(textoYaJugo(phone,ultimoHoy)); return; }
+    const v=weightedPick(); spinTo(v);
+  });
+
+});
+  </script>
+</body>
+</html>

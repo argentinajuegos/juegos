@@ -1,0 +1,531 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Mayor o Menor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b16; --panel:#0b1224; --panel2:#0a1222; --edge:#18254a;
+    --text:#eaf1ff; --muted:#9fb0d8; --accent:#60a5fa; --accent2:#facc15;
+    --good:#34d399; --warn:#fb923c; --bad:#ef4444; --r:18px;
+    --shadow:0 18px 40px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:linear-gradient(180deg,#060b16 0%,#0b1220 60%,#08101d 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  .glow{position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.35;filter:blur(70px)}
+  .g{position:absolute;border-radius:50%}.g1{width:65vw;height:65vw;background:#1e3a8a;top:-20vw;left:-20vw}
+  .g2{width:60vw;height:60vw;background:#0ea5e9;right:-15vw;top:10vw}.g3{width:55vw;height:55vw;background:#a16207;bottom:-20vw;left:10vw}
+  .wrap{min-height:100dvh;display:block}
+  .container{width:100%;max-width:520px;margin:8px auto 16px;padding:12px}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+  .brandTitle{font-size:26px;font-weight:900;margin:0 0 10px}
+  .status{font-weight:900;font-size:14px;opacity:.95}
+  .title{font-weight:900;font-size:22px;margin:8px 0 0}
+  .mini{font-weight:900;font-size:14px;margin:6px 0 0}
+  .how{font-size:14px;line-height:1.45;margin-top:10px}
+  .how strong{color:#fff}
+  .hi-green{color:var(--good);text-shadow:0 0 10px rgba(52,211,153,.35), 0 0 18px rgba(52,211,153,.25)}
+  .hi-red{color:var(--bad);text-shadow:0 0 10px rgba(239,68,68,.35), 0 0 18px rgba(239,68,68,.25)}
+  .status.win .hi-target{color:var(--good);text-shadow:0 0 10px rgba(52,211,153,.35)}
+  .status.lose .hi-target{color:var(--bad);text-shadow:0 0 10px rgba(239,68,68,.35)}
+  #welcome{display:flex;flex-direction:column;gap:12px;margin-bottom:10px}
+  .input{width:100%;background:#0a1426;color:var(--text);border:1px solid var(--edge);border-radius:14px;padding:14px 16px;font-weight:800;font-size:16px;outline:none}
+  .input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.25)}
+  .btn{width:100%;padding:14px 16px;border-radius:14px;border:0;font-weight:900;letter-spacing:.2px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#0b0f1a;cursor:pointer}
+  #headerGame{display:none;margin-bottom:10px}
+  #game{display:none;flex-direction:column;gap:12px}
+  .grid10{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .paneG{padding:12px;border-radius:14px;background:linear-gradient(180deg,#0c162e,#0a1326);border:1px solid var(--edge)}
+  .poker{aspect-ratio:5/7;border-radius:16px;background:linear-gradient(180deg,#ffffff,#fff0c8);color:#0b0f1a;position:relative;display:flex;align-items:center;justify-content:center;border:2px solid #e7c24a;box-shadow:0 10px 24px rgba(0,0,0,.4);overflow:hidden}
+  .poker.back{background:linear-gradient(145deg,#1e3a8a 0%,#0ea5e9 50%,#22d3ee 100%);color:#fff;border:2px solid rgba(255,255,255,.45)}
+  .rank{font-size:clamp(26px,7vw,40px);font-weight:900;letter-spacing:.4px}
+  .suit{position:absolute;bottom:8px;right:10px;font-size:clamp(16px,4.5vw,24px)}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hidden{display:none!important}
+  .b{padding:14px;border-radius:14px;border:0;font-weight:900;cursor:pointer}
+  .b-major{background:#14b8a6;color:#001512}
+  .b-minor{background:#facc15;color:#322400}
+  .b-keep{background:#34d399;color:#062014}
+  .b-exit{background:#fb923c;color:#2a1400}
+  .msg{white-space:pre-line;text-align:center;margin:8px 0 0;font-size:15px}
+  .final{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;padding:12px;background:transparent;z-index:50;pointer-events:none}
+  .final .box{pointer-events:all;width:100%;max-width:520px;border-radius:18px;box-shadow:var(--shadow);padding:16px;text-align:center;border:1px solid #20345f}
+  .final .box.win{background:linear-gradient(180deg,#0f1f3a,#10324f)}
+  .final .box.lose{background:linear-gradient(180deg,#1a1420,#251423)}
+  .final .box h3{margin:4px 0 6px;font-size:22px}
+  .final .box p{margin:6px 0 12px;font-size:15px}
+  .final .box.win p{color:#c9ffe5}
+  .final .box.lose p{color:#ffd1d1}
+  .wa{display:inline-block;background:#25D366;color:#072;font-weight:900;border-radius:12px;padding:12px 14px;border:0;text-decoration:none}
+  body.sad .container > *:not(#headerGame){filter:grayscale(1) brightness(.8)}
+  body.sad #headerGame .status.lose .hi-target{color:var(--bad);filter:none;text-shadow:0 0 10px rgba(239,68,68,.35),0 0 18px rgba(239,68,68,.25)}
+  body.sad #final .box.lose .hi-red{color:var(--bad);filter:none;text-shadow:0 0 10px rgba(239,68,68,.35),0 0 18px rgba(239,68,68,.25)}
+  .confetti{position:fixed;top:-10vh;left:50%;width:8px;height:14px;border-radius:2px;opacity:.9;transform:translateX(-50%);animation:fall linear forwards}
+  @keyframes fall{to{transform:translate(var(--x),110vh) rotate(720deg);opacity:1}}
+  @media(min-width:900px){body::after{content:"Diseñado para móvil (vertical). Abrilo en el celular.";position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000a;color:#fff;font-weight:900;font-size:18px;text-align:center;padding:20px;z-index:99}}
+  .pass{color:#39ff14;text-shadow:0 0 6px rgba(57,255,20,.9),0 0 16px rgba(57,255,20,.7),0 0 28px rgba(57,255,20,.5)}
+  #loadingScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80dvh;gap:16px}
+  .spin{width:40px;height:40px;border:3px solid var(--edge);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .spin-txt{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="glow"><div class="g g1"></div><div class="g g2"></div><div class="g g3"></div></div>
+
+<div class="wrap">
+  <div class="container">
+
+    <!-- LOADING -->
+    <div id="loadingScreen">
+      <div class="spin"></div>
+      <p class="spin-txt">Cargando...</p>
+    </div>
+
+    <!-- INICIO -->
+    <div id="welcome" class="panel" style="display:none">
+      <h1 class="brandTitle" id="brandTitle">---</h1>
+      <input id="phone" class="input" placeholder="Poné tu número" inputmode="numeric" />
+      <button id="start" class="btn">Empezar ▶</button>
+    </div>
+
+    <div class="panel how" id="how" style="display:none">
+      <strong>¿Cómo se juega?</strong><br>
+      1) Empezás con una <strong>base de <span id="txtBase">$500</span></strong>.<br>
+      2) Se muestra una carta y tenés que adivinar si la próxima es <strong>Mayor</strong> o <strong>Menor</strong>.<br>
+      3) Cada acierto suma <strong><span id="txtStep">+$500</span></strong> a tu premio.<br>
+      4) Después de cada acierto podés <strong>"Arriesgar y seguir"</strong> o <strong>"Retirarte"</strong> con lo ganado.<br>
+      5) Si fallás, te quedás solo con la <strong>base</strong>.<br>
+      Máximo posible si acertás todo: <strong id="maxWin">$—</strong>.
+    </div>
+
+    <!-- HEADER JUEGO -->
+    <div id="headerGame" class="panel">
+      <div class="brandTitle" style="margin:0" id="brandTitle2">---</div>
+      <div class="status" id="status">💎 BASE: $— — GANANCIA ACTUAL: $—</div>
+      <div class="mini">
+        <span id="who">👤 Número: —</span> &nbsp;•&nbsp;
+        <span id="clock">🕒 —/—/— —:—:—</span>
+      </div>
+      <div class="title">Mayor o Menor</div>
+    </div>
+
+    <!-- JUEGO -->
+    <div id="game">
+      <div class="paneG">
+        <div id="rowTop" class="grid10" style="margin-bottom:10px"></div>
+        <div id="rowBot" class="grid10"></div>
+      </div>
+      <div class="paneG">
+        <p class="msg" id="msg"></p>
+        <div class="controls" id="chooseMM">
+          <button class="b b-major" id="bMaj">📈 Mayor</button>
+          <button class="b b-minor" id="bMin">📉 Menor</button>
+        </div>
+        <div class="cta hidden" id="chooseKE">
+          <button class="b b-keep" id="bKeep">🍀 Arriesgar y seguir</button>
+          <button class="b b-exit" id="bExit">💰 Retirarse</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="final" id="final">
+  <div class="box" id="finalBox">
+    <h3 id="finalTitle">—</h3>
+    <p id="finalText">—</p>
+    <a id="waBtn" class="wa" target="_blank" rel="noopener">📲 Reclamar por WhatsApp</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES — único lugar donde tocar código
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ════════════════════════════════════════════════════
+let CFG = null;
+let BASE = 500, STEP = 500, CASINO = '', ADMIN_WA = '';
+const JUEGO = 'mayor_menor';
+const suits = ["🍀","❤️","⭐️","💚"];
+let phone = "", seq = [], idx = 0, lock = false;
+
+const $ = s => document.querySelector(s);
+const money = n => '$' + Number(n).toLocaleString('es-AR');
+const prizeForStep = s => BASE + s * STEP;
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DEL PASADOR DESDE SUPABASE
+//  Campos configurables en la tabla juegos_config:
+//  nombre, tipo, whatsapp, base, step,
+//  chance_por_carta (JSON [75,75,70,65,60,55,45,35,15,0])
+//  premios_tabla    (JSON {"1":"$500","5":"$2.500+20%BONO",...})
+//  activo           (true/false)
+// ════════════════════════════════════════════════════
+async function loadConfig(pasadorId) {
+  const { data, error } = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', pasadorId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+
+  if (error || !data) return null;
+
+  // Normalizar chance_por_carta
+  if (!data.chance_por_carta) {
+    data.chance_por_carta = [50,50,50,50,50,50,50,50,50,0];
+  } else if (typeof data.chance_por_carta === 'string') {
+    try { data.chance_por_carta = JSON.parse(data.chance_por_carta); }
+    catch { data.chance_por_carta = [75,75,70,70,65,60,50,40,20,0]; }
+  }
+
+  // Normalizar premios_tabla
+  if (data.premios_tabla && typeof data.premios_tabla === 'string') {
+    try { data.premios_tabla = JSON.parse(data.premios_tabla); }
+    catch { data.premios_tabla = null; }
+  }
+
+  return data;
+}
+
+function getPremioTexto(aciertos) {
+  if (CFG.premios_tabla && CFG.premios_tabla[aciertos]) return CFG.premios_tabla[aciertos];
+  return money(prizeForStep(aciertos));
+}
+
+// ════════════════════════════════════════════════════
+//  CHANCE CONFIGURABLE POR CARTA
+//  chance_por_carta[i] = % de ganar la carta i (0-9)
+//  0 = siempre pierde, 100 = siempre gana
+// ════════════════════════════════════════════════════
+function shouldWin(cardIndex) {
+  const chance = CFG.chance_por_carta[cardIndex] ?? 50;
+  return Math.random() * 100 < chance;
+}
+
+function resolveNext(currentRank, choice, win) {
+  const pool = [];
+  for (let r = 1; r <= 12; r++) {
+    const ganaria = choice === 'mayor' ? r >= currentRank : r <= currentRank;
+    if (win === ganaria) pool.push(r);
+  }
+  const rank = pool.length ? pool[Math.floor(Math.random() * pool.length)] : currentRank;
+  return { rank, suit: suits[Math.floor(Math.random() * 4)] };
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function tickClock() {
+  const opts = { timeZone:'America/Argentina/Buenos_Aires', hour12:true,
+    day:'2-digit', month:'2-digit', year:'numeric',
+    hour:'2-digit', minute:'2-digit', second:'2-digit' };
+  $('#clock').textContent = '🕒 ' + new Intl.DateTimeFormat('es-AR', opts).format(new Date());
+}
+setInterval(tickClock, 1000); tickClock();
+
+function nowAR() {
+  const tz = 'America/Argentina/Buenos_Aires';
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone:tz, year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+  }).formatToParts(now);
+  const get = t => parts.find(p => p.type === t).value;
+  const fecha = `${get('year')}-${get('month')}-${get('day')}`;
+  return {
+    fecha,
+    horaLocalNoTZ:    `${fecha} ${get('hour')}:${get('minute')}:${get('second')}`,
+    horaISOconOffset: `${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,
+    horaUTC:          now.toISOString()
+  };
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function deviceFingerprint() {
+  try {
+    const txt = [navigator.userAgent, navigator.platform, navigator.language,
+      (navigator.languages||[]).join(','), screen.width+'x'+screen.height,
+      screen.colorDepth, (Intl.DateTimeFormat().resolvedOptions().timeZone||''),
+      (navigator.hardwareConcurrency||''), (navigator.deviceMemory||'')].join('|');
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch {
+    const seed = [navigator.userAgent, navigator.platform, screen.width, screen.height].join('|');
+    let hash = 0;
+    for (let i=0; i<seed.length; i++) { hash=((hash<<5)-hash)+seed.charCodeAt(i); hash|=0; }
+    return 'fp_'+Math.abs(hash).toString(16);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function localBlockKeyUser(u, fp) { const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:user:${u}:${fp}`; }
+function localBlockKeyDevice(fp)  { const {fecha}=nowAR(); return `played:${fecha}:${CASINO}:${JUEGO}:device:${fp}`; }
+function setLocalPlayed(u, fp) {
+  localStorage.setItem(localBlockKeyUser(u, fp), '1');
+  localStorage.setItem(localBlockKeyDevice(fp), '1');
+}
+function isLocalPlayed(u, fp) {
+  return !!localStorage.getItem(localBlockKeyUser(u, fp)) || !!localStorage.getItem(localBlockKeyDevice(fp));
+}
+
+async function fetchUltimoDeHoy(usuario, fp) {
+  const { fecha } = nowAR();
+  const { data, error } = await sb
+    .from('giros')
+    .select('usuario,premio')
+    .eq('fecha', fecha)
+    .eq('pasador_id', CFG.pasador_id)
+    .eq('juego', JUEGO)
+    .or(`usuario.eq.${usuario},fingerprint.eq.${fp}`)
+    .order('id', { ascending: false })
+    .limit(1);
+  if (error) { console.warn('fetchUltimoDeHoy error', error); return null; }
+  return (data && data[0]) ? data[0] : null;
+}
+
+async function registrarGiro({ usuario, fp, premio }) {
+  const { fecha, horaLocalNoTZ, horaISOconOffset, horaUTC } = nowAR();
+  const { error } = await sb.from('giros').insert([{
+    usuario, fingerprint: fp, premio, fecha,
+    hora: horaISOconOffset, hora_local: horaLocalNoTZ, hora_utc: horaUTC,
+    pasador_id: CFG.pasador_id, casino: CASINO, juego: JUEGO
+  }]);
+  if (error) { console.warn('insert error', error); }
+}
+
+// ════════════════════════════════════════════════════
+//  UI — idéntico al original
+// ════════════════════════════════════════════════════
+function setStatusNeutral() {
+  const s = $('#status'); s.classList.remove('win','lose');
+  s.innerHTML = `💎 BASE: ${money(BASE)} — GANANCIA ACTUAL: ${money(prizeForStep(idx))}`;
+}
+function setStatusWin(amount) {
+  const s = $('#status'); s.classList.remove('lose'); s.classList.add('win');
+  s.innerHTML = `💎 BASE: ${money(BASE)} — GANANCIA ACTUAL: <span class="hi-target">${money(amount)}</span>`;
+}
+function setStatusLose() {
+  const s = $('#status'); s.classList.remove('win'); s.classList.add('lose');
+  s.innerHTML = `💎 BASE: <span class="hi-target">${money(BASE)}</span> — GANANCIA ACTUAL: ${money(BASE)}`;
+}
+const setMsg = html => { $('#msg').innerHTML = html; };
+const setWho = () => { $('#who').textContent = `👤 Número: ${phone || '—'}`; };
+
+function makeCard(card, visible) {
+  const el = document.createElement('div');
+  el.className = 'poker' + (visible ? '' : ' back');
+  if (visible && card) {
+    el.innerHTML = `<div class="rank">${card.rank}</div><div class="suit">${card.suit}</div>`;
+  }
+  return el;
+}
+
+function renderBoard() {
+  const top = $('#rowTop'), bot = $('#rowBot');
+  top.innerHTML=''; bot.innerHTML='';
+  for(let i=0;i<5;i++){ const v=(i<=idx); top.appendChild(makeCard(v?seq[i]:null,v)); }
+  for(let i=5;i<10;i++){ const v=(i<=idx); bot.appendChild(makeCard(v?seq[i]:null,v)); }
+}
+
+function newDeck() {
+  const deck=[];
+  for(let r=1;r<=12;r++){ for(const s of suits){ deck.push({rank:r,suit:s}); } }
+  for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+  seq = deck.slice(0,11); // 11 cartas: pos 0 visible + 10 a adivinar
+  idx = 0; lock = false;
+  document.body.classList.remove('sad');
+  renderBoard(); setStatusNeutral();
+  setMsg(`🍀 ${phone || 'Jugador'}, empezás con ${money(BASE)}.<br>Elegí 📈 Mayor o 📉 Menor para la próxima carta.`);
+  showChooseMM(true); showChooseKE(false); enableMM(true);
+}
+
+const showChooseMM = show => $('#chooseMM').classList.toggle('hidden', !show);
+const showChooseKE = show => $('#chooseKE').classList.toggle('hidden', !show);
+const enableMM = v => { $('#bMaj').disabled=!v; $('#bMin').disabled=!v; };
+const enableKE = v => { $('#bKeep').disabled=!v; $('#bExit').disabled=!v; };
+
+function confettiBurst() {
+  for(let i=0;i<80;i++){
+    const d = document.createElement('div'); d.className='confetti';
+    d.style.background = `hsl(${Math.floor(Math.random()*360)} 90% 60%)`;
+    d.style.left = Math.random()*100 + 'vw';
+    d.style.setProperty('--x', (Math.random()*60-30)+'vw');
+    d.style.animationDuration = (1.2 + Math.random()*1.2) + 's';
+    document.body.appendChild(d); setTimeout(()=>d.remove(), 2500);
+  }
+}
+
+function openFinal(win, amount) {
+  const box = $('#finalBox'); box.classList.remove('win','lose'); box.classList.add(win?'win':'lose');
+  $('#finalTitle').innerHTML = win ? '🎉 <span class="hi-green">¡Felicitaciones!</span>' : '😔 <span class="hi-red">Qué lástima</span>';
+  $('#finalText').innerHTML = win
+    ? `Ganaste <span class="hi-green">${getPremioTexto(idx)}</span>. Tocá el botón para reclamar tu premio.`
+    : `Te quedaste con la base de <span class="hi-red">${money(BASE)}</span>. Podés reclamarla por WhatsApp.`;
+  const msgWA = win
+    ? `Hola, soy el número ${phone}. Acabo de GANAR ${getPremioTexto(idx)} en Mayor/Menor (${CASINO}). Quiero reclamar mi premio.`
+    : `Hola, soy el número ${phone}. Perdí en Mayor/Menor (${CASINO}) y me quedo con la BASE ${money(BASE)}. Quiero reclamarla.`;
+  $('#waBtn').href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msgWA)}`;
+  $('#final').style.display='flex';
+  if(win) confettiBurst();
+}
+
+function finish(textHTML, win, amount) {
+  lock = true; setMsg(textHTML);
+  enableMM(false); enableKE(false); showChooseMM(false); showChooseKE(false);
+  if(win){ document.body.classList.remove('sad'); setStatusWin(amount); }
+  else   { document.body.classList.add('sad'); setStatusLose(); }
+  if(window.__FP){
+    registrarGiro({ usuario:phone, fp:window.__FP, premio: win ? `GANÓ ${getPremioTexto(idx)}` : `BASE ${money(BASE)}` });
+    setLocalPlayed(phone, window.__FP);
+  }
+  openFinal(win, amount);
+}
+
+function pick(kind) {
+  if(lock || idx>=9) return;
+  enableMM(false);
+  const win = shouldWin(idx);
+  seq[idx+1] = resolveNext(seq[idx].rank, kind, win);
+  idx++; renderBoard(); setStatusNeutral();
+  if(win){
+    if(idx===9){ finish(`🎁 GANASTE: <span class="hi-green">${getPremioTexto(idx)}</span>`, true, prizeForStep(idx)); return; }
+    setMsg(`✅ ¡Bien, ${phone || 'Jugador'}!<br>¿Arriesgás y seguís o te retirás con <span class="hi-green">${getPremioTexto(idx)}</span>?`);
+    showChooseMM(false); showChooseKE(true); enableKE(true);
+  } else {
+    finish(`❌ Esta no salió.<br>💥 Te quedás con la base: <span class="hi-red">${money(BASE)}</span>.`, false, BASE);
+  }
+}
+
+function keepGoing() {
+  setMsg(`✨ OK, ${phone || 'Jugador'}: elegí 📈 o 📉 para la próxima carta.`);
+  showChooseKE(false); enableKE(false); showChooseMM(true); enableMM(true);
+}
+function exitNow() {
+  finish(`💼 Te retiraste con: <span class="hi-green">${getPremioTexto(idx)}</span>`, true, prizeForStep(idx));
+}
+
+function textoYaJugo(phoneIngresado, reg) {
+  const uReg = reg?.usuario || phoneIngresado;
+  const quien = uReg === phoneIngresado ? `este usuario <strong>${uReg}</strong>` : `el usuario <strong>${uReg}</strong>`;
+  const premio = reg?.premio ? `<strong>${reg.premio}</strong>` : '—';
+  return `✅ Ya jugaste hoy como ${quien}.<br>Último resultado: ${premio}.<br>💡 Volvé mañana para intentarlo de nuevo.`;
+}
+
+function paintName(nombre) {
+  return nombre.replace(/(\d+)\s*$/, '<span class="pass">$1</span>');
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const pasadorId = new URLSearchParams(window.location.search).get('p')
+    || new URLSearchParams(window.location.search).get('pasador');
+
+  if (!pasadorId) {
+    $('#loadingScreen').innerHTML = `<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Link inválido</p><p style="color:var(--muted);font-size:13px">Pedile el link correcto a tu pasador.</p></div>`;
+    return;
+  }
+
+  CFG = await loadConfig(pasadorId);
+
+  if (!CFG) {
+    $('#loadingScreen').innerHTML = `<div class="panel" style="text-align:center;padding:30px"><p style="font-size:32px;margin-bottom:12px">⚠️</p><p style="font-weight:900;margin-bottom:6px">Juego no encontrado</p><p style="color:var(--muted);font-size:13px">El link no es válido o el juego está inactivo.</p></div>`;
+    return;
+  }
+
+  // Aplicar config
+  BASE     = CFG.base     || 500;
+  STEP     = CFG.step     || 500;
+  CASINO   = CFG.nombre;
+  ADMIN_WA = CFG.whatsapp;
+
+  document.title = `${CASINO} — Mayor o Menor`;
+
+  // Pintar nombre en todos los elementos
+  ['#brandTitle','#brandTitle2'].forEach(sel => {
+    const el = $(sel); if(el) el.innerHTML = paintName(CASINO);
+  });
+
+  $('#txtBase').textContent = money(BASE);
+  $('#txtStep').textContent = `+${money(STEP)}`;
+  $('#maxWin').textContent  = money(prizeForStep(9));
+
+  // Mostrar pantalla inicio
+  $('#loadingScreen').style.display = 'none';
+  $('#welcome').style.display = 'flex';
+  $('#how').style.display = 'block';
+
+  $('#bMaj').addEventListener('click', ()=>pick('mayor'));
+  $('#bMin').addEventListener('click', ()=>pick('menor'));
+  $('#bKeep').addEventListener('click', keepGoing);
+  $('#bExit').addEventListener('click', exitNow);
+  $('#phone').addEventListener('keydown', e => { if(e.key==='Enter') $('#start').click(); });
+
+  $('#start').addEventListener('click', async () => {
+    const val = $('#phone').value.trim();
+    if(!val){ $('#phone').classList.add('error'); $('#phone').focus(); return; }
+    $('#phone').classList.remove('error');
+    phone = val; setWho();
+
+    $('#welcome').style.display='none';
+    $('#how').style.display='none';
+    $('#headerGame').style.display='block';
+    $('#game').style.display='flex';
+
+    newDeck();
+
+    try {
+      const fp = await deviceFingerprint();
+      window.__FP = fp;
+
+      const promReg = fetchUltimoDeHoy(phone, fp);
+      const reg = await Promise.race([promReg, new Promise(res => setTimeout(()=>res(null), 1200))]);
+
+      if (isLocalPlayed(phone, fp) || reg) {
+        setStatusLose(); document.body.classList.add('sad');
+        setMsg(textoYaJugo(phone, reg || {usuario:phone, premio:'—'}));
+        enableMM(false); enableKE(false); return;
+      }
+
+      (async () => {
+        try {
+          const regBg = await fetchUltimoDeHoy(phone, fp);
+          if (regBg) {
+            setStatusLose(); document.body.classList.add('sad');
+            setMsg(textoYaJugo(phone, regBg));
+            enableMM(false); enableKE(false);
+          }
+        } catch(e) { console.warn('bg check fail', e); }
+      })();
+
+    } catch (err) { console.warn('Verificación falló:', err); }
+  });
+
+});
+</script>
+</body>
+</html>

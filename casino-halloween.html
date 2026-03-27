@@ -1,0 +1,685 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Vasos Malditos — Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0008; --panel:#100014; --panel2:#16001a;
+  --stroke:rgba(255,100,200,.15); --stroke2:rgba(255,100,200,.25);
+  --ink:#f0e6ff; --muted:#9b7eb8;
+  --blood:#d4145a; --blood2:#8b0038;
+  --orange:#ff8c00; --orange2:#ff6a00;
+  --purple:#7c3aed; --purple2:#4c1d95;
+  --green:#22c55e; --green2:#15803d;
+  --gold:#ffd600;
+  --r:18px; --r2:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:'Nunito',system-ui,sans-serif;color:var(--ink);overflow-x:hidden}
+
+/* ── FONDO HALLOWEEN ── */
+body{
+  background:
+    radial-gradient(ellipse 900px 400px at 50% -5%,rgba(140,0,60,.35),transparent 65%),
+    radial-gradient(ellipse 600px 300px at 10% 80%,rgba(100,0,180,.2),transparent 60%),
+    radial-gradient(ellipse 600px 300px at 90% 80%,rgba(180,0,60,.2),transparent 60%),
+    linear-gradient(160deg,#0a0008,#10000f,#0d0012);
+}
+
+/* Estrellas */
+.bg-stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg-star{position:absolute;border-radius:50%;background:#fff;opacity:0;animation:twinkle var(--d,2s) var(--delay,0s) ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:.8;transform:scale(1)}}
+
+/* Luna llena fondo */
+.moon{position:fixed;top:-30px;right:60px;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#fffde7,#ffe082 40%,#ffd54f 70%,#ff8f00 100%);
+  box-shadow:0 0 40px rgba(255,214,0,.25),0 0 80px rgba(255,214,0,.1);
+  pointer-events:none;z-index:0;opacity:.9;
+}
+.moon::after{content:"";position:absolute;border-radius:50%;background:rgba(0,0,0,.05);
+  width:20px;height:20px;top:25px;left:35px;box-shadow:12px 10px 0 rgba(0,0,0,.07),30px -5px 0 rgba(0,0,0,.05)}
+
+/* Nubes de murciélagos (SVG inline simplificado) */
+.bats{position:fixed;top:80px;left:0;width:100%;pointer-events:none;z-index:0;opacity:.35}
+
+/* ── LOADING ── */
+#loadingScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999;background:var(--bg)}
+.pumpkin-loader{font-size:52px;animation:pumpSpin 1s ease-in-out infinite}
+@keyframes pumpSpin{0%,100%{transform:scale(1) rotate(-5deg)}50%{transform:scale(1.2) rotate(5deg)}}
+.loading-txt{font-family:'Creepster',cursive;font-size:18px;color:var(--orange);letter-spacing:2px}
+
+/* ── WRAP ── */
+.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:12px}
+.frame{width:100%;max-width:960px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--stroke2);border-radius:var(--r);box-shadow:0 15px 50px rgba(0,0,0,.7),0 0 50px rgba(220,20,90,.08) inset;padding:14px}
+
+/* ── HEADER ── */
+.header{text-align:center;padding:6px 0 12px}
+.casino-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(212,20,90,.18);border:1px solid rgba(212,20,90,.45);border-radius:999px;font-weight:800;font-size:13px;color:#ff8ab0;margin-bottom:8px;letter-spacing:.5px}
+.game-title{font-family:'Creepster',cursive;font-size:clamp(26px,7vw,52px);letter-spacing:1px;color:var(--ink);text-shadow:0 0 20px rgba(255,80,130,.5),0 0 40px rgba(255,80,130,.2);margin-bottom:2px}
+.game-sub{font-size:.85rem;color:var(--muted);font-weight:700;letter-spacing:.5px}
+
+/* ── PANEL ── */
+.panel{background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r);padding:18px;box-shadow:0 0 30px rgba(212,20,90,.08) inset}
+
+/* ── BIENVENIDA ── */
+.start{max-width:600px;margin:0 auto;text-align:center}
+.start h2{font-family:'Creepster',cursive;font-size:clamp(24px,5vw,38px);margin-bottom:14px;color:#ff8ab0;text-shadow:0 0 14px rgba(255,80,130,.4)}
+.inp{width:100%;max-width:420px;padding:14px 16px;border-radius:var(--r2);border:1px solid var(--stroke2);background:#0f000d;color:#fff;outline:none;text-align:center;font-weight:800;font-size:1.1rem;font-family:'Nunito',sans-serif;transition:border-color .2s}
+.inp:focus{border-color:var(--blood);box-shadow:0 0 0 3px rgba(212,20,90,.2)}
+.inp.error{border-color:#ff6b6b}
+.notice{margin-top:8px;color:#ff6b6b;font-weight:700;min-height:20px;font-size:.85rem}
+.how{text-align:left;margin:14px auto;max-width:420px;font-size:.85rem;color:var(--muted);line-height:1.6}
+.how li{margin:.2rem 0;list-style:none}
+.how li::before{content:"🎃 ";color:var(--orange)}
+
+/* ── INFO BOX ── */
+.info-box{background:rgba(212,20,90,.06);border:1px solid var(--stroke);border-radius:var(--r2);padding:12px;text-align:center;margin-top:12px}
+.info-title{font-family:'Creepster',cursive;font-size:1rem;color:var(--orange);margin-bottom:4px;letter-spacing:1px}
+.info-sub{font-size:.75rem;color:var(--muted);font-weight:700}
+.btn-wa-welcome{display:inline-block;margin-top:8px;padding:10px 18px;background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;border-radius:10px;font-size:.82rem;font-weight:800;text-decoration:none;box-shadow:0 4px 0 #0c5e51}
+
+/* ── BOTONES ── */
+.btn{appearance:none;border:none;border-radius:var(--r2);padding:13px 20px;cursor:pointer;font-weight:900;color:#fff;font-size:1rem;font-family:'Nunito',sans-serif;transition:transform .1s,box-shadow .1s;letter-spacing:.3px}
+.btn:active:not(:disabled){transform:translateY(2px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-blood{background:linear-gradient(180deg,var(--blood),var(--blood2));border:1px solid rgba(255,100,150,.3);box-shadow:0 6px 0 #5a0022,0 10px 22px rgba(212,20,90,.3)}
+.btn-green{background:linear-gradient(180deg,var(--green),var(--green2));border:1px solid rgba(34,197,94,.3);box-shadow:0 6px 0 #0d5c28,0 10px 22px rgba(34,197,94,.25)}
+.btn-wa{background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;box-shadow:0 5px 0 #0c5e51;text-decoration:none;text-align:center;display:none;border-radius:var(--r2);padding:13px 20px;font-weight:900;font-size:1rem;font-family:'Nunito',sans-serif}
+.btn-full{width:100%;margin-top:8px}
+
+/* ── JUEGO LAYOUT ── */
+.game-layout{display:grid;grid-template-columns:1fr 260px;gap:14px;margin-top:10px}
+@media(max-width:820px){.game-layout{grid-template-columns:1fr}}
+
+/* ── ESCENARIO ── */
+.stage{
+  border-radius:var(--r2);position:relative;overflow:hidden;
+  height:clamp(240px,42vh,340px);
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 110%,rgba(50,0,80,.8),transparent 70%),
+    radial-gradient(ellipse 100% 40% at 50% 0%,rgba(100,0,40,.3),transparent 60%),
+    #0d0010;
+  border:1px solid rgba(255,100,200,.12);
+}
+/* Suelo brillante */
+.stage::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(255,100,200,.3),transparent)}
+
+/* ── HUD DEL JUEGO ── */
+.game-hud{display:flex;align-items:center;justify-content:space-between;padding:8px 4px;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.hud-pill{background:rgba(255,255,255,.05);border:1px solid var(--stroke);border-radius:999px;padding:4px 12px;font-size:.78rem;font-weight:800;color:var(--muted)}
+.hud-pill b{color:var(--orange)}
+.prize-pill{background:rgba(212,20,90,.12);border:1px solid rgba(212,20,90,.3);border-radius:999px;padding:4px 12px;font-size:.78rem;font-weight:900;color:#ff8ab0}
+
+/* ── BOLA ── */
+#ball{
+  position:absolute;
+  /* La pelota se posiciona relativa al suelo del escenario */
+  bottom:64px; left:50%;
+  transform:translateX(-50%);
+  width:38px;height:38px;border-radius:50%;
+  background:radial-gradient(circle at 32% 28%,#fff 0 12%,#ffd08a 14%,#f48c06 42%,#a44f04 72%,#5a2a02 100%);
+  box-shadow:0 0 16px rgba(244,140,6,.7),0 6px 20px rgba(0,0,0,.6);
+  z-index:1; /* DEBAJO del vaso (z-index:3) — queda tapada */
+  transition:left .5s cubic-bezier(.2,.8,.2,1), opacity .25s ease, bottom .4s cubic-bezier(.2,.8,.2,1);
+  pointer-events:none; /* nunca interfiere con el cursor */
+}
+#ball.hide{opacity:0}
+#ball.revealed{z-index:4} /* encima de todo cuando se revela */
+
+/* ── VASOS ── */
+.cup{
+  width:min(22vw,110px);
+  aspect-ratio:.85;
+  position:absolute;bottom:52px;
+  transform:translateX(-50%);
+  cursor:not-allowed;
+  /* Transición lenta y suave para el lift y el slide horizontal */
+  transition:transform .5s cubic-bezier(.2,.8,.2,1), left .5s cubic-bezier(.2,.8,.2,1), filter .3s;
+  filter:drop-shadow(0 14px 12px rgba(0,0,0,.55));
+  z-index:3; /* siempre por encima de la pelota */
+  /* Deshabilitar selección y drag — evita trampa visual */
+  user-select:none; -webkit-user-select:none;
+  pointer-events:auto;
+  -webkit-user-drag:none;
+}
+.cup * { pointer-events:none; user-select:none; }
+.cup.left{left:18%}.cup.middle{left:50%}.cup.right{left:82%}
+.cup.lift{transform:translateX(-50%) translateY(-60px)}
+.cup.clickable{cursor:pointer}
+.cup.clickable:hover{filter:drop-shadow(0 0 20px rgba(255,140,0,.8)) drop-shadow(0 14px 12px rgba(0,0,0,.5))}
+
+/* Animación de intercambio */
+@keyframes swapBounce{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.06) rotate(4deg)}70%{transform:translateX(-50%) scale(.97) rotate(-2deg)}100%{transform:translateX(-50%) scale(1) rotate(0)}}
+.cup.swapping{animation:swapBounce .38s ease}
+
+/* ── SIDE PANEL ── */
+.side{display:flex;flex-direction:column;gap:10px}
+.side-pill{background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r2);padding:10px 12px}
+.side-label{font-size:.7rem;color:var(--muted);font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.side-val{color:var(--orange);font-weight:900;font-size:.95rem}
+.status-box{background:var(--panel2);border:1px solid var(--stroke);border-radius:var(--r2);padding:10px;font-size:.85rem;min-height:48px;color:var(--ink);line-height:1.5}
+
+/* ── MENSAJE RESULTADO ── */
+.msg-win{font-family:'Creepster',cursive;font-size:1.5rem;color:var(--green);text-shadow:0 0 16px rgba(34,197,94,.5);text-align:center;margin-top:8px;animation:popIn .4s cubic-bezier(.2,1.4,.4,1)}
+.msg-lose{font-family:'Creepster',cursive;font-size:1.4rem;color:#ff8ab0;text-shadow:0 0 12px rgba(255,80,130,.4);text-align:center;margin-top:8px;animation:popIn .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ── CONFETTI ── */
+#confeti{position:fixed;inset:0;pointer-events:none;z-index:9999}
+.cup.spin{animation:cupSpin 450ms ease}
+@keyframes cupSpin{0%{transform:translateX(-50%) rotate(0)}50%{transform:translateX(-50%) rotate(8deg)}100%{transform:translateX(-50%) rotate(0)}}
+</style>
+</head>
+<body>
+
+<!-- Fondo decorativo -->
+<div class="bg-stars" id="bgStars"></div>
+<div class="moon"></div>
+
+<!-- Loading -->
+<div id="loadingScreen">
+  <div class="pumpkin-loader">🎃</div>
+  <p class="loading-txt">CARGANDO HECHIZO...</p>
+</div>
+
+<canvas id="confeti"></canvas>
+
+<div class="wrap">
+<div class="frame">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="casino-badge">🎃 <span id="casinoTag">CASINO</span> — HALLOWEEN 🦇</div>
+    <div class="game-title">VASOS MALDITOS</div>
+    <div class="game-sub">Adiviná dónde está la calavera 💀</div>
+  </div>
+
+  <!-- INICIO -->
+  <div id="screen-start" class="panel">
+    <div class="start">
+      <h2>¡Probá tu suerte!</h2>
+      <input id="username" class="inp" type="text" placeholder="Ingresá tu usuario" autocomplete="off"/>
+      <div class="notice" id="notice"></div>
+
+      <ul class="how" id="howList">
+        <li>Premio si adivinás: <b id="howWin" style="color:var(--green)">$10.000</b></li>
+        <li>Premio si no adivinás: <b id="howLose" style="color:#ff8ab0">$1.000</b></li>
+        <li>Mirá bien dónde está la calavera 💀</li>
+        <li>El juego mezcla los vasos — ¡seguile la pista!</li>
+        <li>Elegí el vaso correcto y cobrás.</li>
+      </ul>
+
+      <button id="goBtn" class="btn btn-blood btn-full">🎃 ENTRAR AL JUEGO</button>
+
+      <div class="info-box">
+        <div class="info-title" id="infoTitle">🎃 CASINO 🎃</div>
+        <div class="info-sub">LÍNEA ACTIVA 24HS · TODOS LOS PREMIOS SE PAGAN AL INSTANTE</div>
+        <a id="waContacto" href="#" target="_blank" class="btn-wa-welcome">📞 Contactanos por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div id="screen-game" style="display:none">
+    <div class="game-hud">
+      <div class="hud-pill">👤 <b id="who">—</b></div>
+      <div class="hud-pill">🗓️ <b id="fechaHud">—</b></div>
+      <div class="prize-pill">🏆 Ganás <b id="hudPremioWin">$10.000</b> | Consolación <b id="hudPremioLose">$1.000</b></div>
+    </div>
+
+    <div class="game-layout">
+      <!-- Escenario -->
+      <div>
+        <div class="stage" id="stage">
+          <div id="ball" class="ball hide"></div>
+          <div id="cup0" class="cup left"  data-index="0"></div>
+          <div id="cup1" class="cup middle" data-index="1"></div>
+          <div id="cup2" class="cup right"  data-index="2"></div>
+        </div>
+        <div id="messageEl" style="min-height:44px;margin-top:6px"></div>
+      </div>
+
+      <!-- Side -->
+      <div class="side">
+        <div class="side-pill">
+          <div class="side-label">Estado</div>
+          <div class="side-val" id="stateEl">Listo para empezar…</div>
+        </div>
+        <div class="status-box" id="statusBox">Tocá INICIAR cuando estés listo 🎃</div>
+        <button id="startBtn" class="btn btn-blood btn-full">🎃 INICIAR</button>
+        <a id="btn-wsp" class="btn btn-wa btn-full" href="#" target="_blank" rel="noopener">💬 RECLAMAR POR WHATSAPP</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /frame -->
+</div><!-- /wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ════════════════════════════════════════════════════
+//  CONFIG — todo editable desde Supabase
+//  Campos en juegos_config:
+//  nombre, tipo, whatsapp,
+//  base:  premio si NO adivina (consolación)
+//  step:  premio si SÍ adivina (ganador)
+//         (reutilizamos step como "premio ganador")
+//  chance_por_carta: JSON [prob] — probabilidad 0-100
+//    de que el juego deje ganar al jugador
+//    50 = puro azar, 70 = más fácil, 30 = más difícil
+//  activo: true/false
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO_NOMBRE = '', ADMIN_WA = '';
+const JUEGO = 'halloween';
+
+let PREMIO_GANA   = 10000;   // step en Supabase
+let PREMIO_PIERDE = 1000;    // base en Supabase
+// Probabilidad de que el jugador GANE (0-100)
+// 50 = azar puro, 70 = más fácil, 30 = más difícil
+let PROB_GANAR = 50;
+
+const toMoney = n => '$'+Number(n).toLocaleString('es-AR');
+
+async function loadConfig(casinoId) {
+  const {data,error} = await sb.from('juegos_config').select('*').eq('pasador_id',casinoId).eq('juego',JUEGO).eq('activo',true).single();
+  if (error||!data) return null;
+  if (data.base) PREMIO_PIERDE = Number(data.base);
+  if (data.step) PREMIO_GANA   = Number(data.step);
+  if (data.chance_por_carta) {
+    const c = typeof data.chance_por_carta==='string' ? JSON.parse(data.chance_por_carta) : data.chance_por_carta;
+    if (Array.isArray(c) && c.length>0) PROB_GANAR = Number(c[0]);
+    else if (typeof c==='number') PROB_GANAR = c;
+  }
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA AR
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return {fecha,horaISO:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,horaUTC:now.toISOString(),display:`${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`};
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT nativo
+// ════════════════════════════════════════════════════
+async function getFingerprint() {
+  try {
+    const k='rg_seed'; let s=localStorage.getItem(k);
+    if(!s){s=Math.random().toString(36).slice(2)+Date.now();localStorage.setItem(k,s);}
+    const txt=[navigator.userAgent,navigator.language,navigator.platform,screen.width+'x'+screen.height,s].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+const LOCK_KEY = () => `halloween_${CASINO_NOMBRE}_${nowAR().fecha}`;
+function setLocalLock(prize,user){ try{localStorage.setItem(LOCK_KEY(),JSON.stringify({prize,user}));}catch{} }
+function readLocalLock(){ try{const s=localStorage.getItem(LOCK_KEY());return s?JSON.parse(s):null;}catch{return null;} }
+
+async function checkYaJugo(user,fp) {
+  try{
+    const {fecha}=nowAR();
+    const {data,error}=await sb.from('giros').select('premio,usuario').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${user},fingerprint.eq.${fp}`).limit(1).maybeSingle();
+    if(error) return null;
+    return data?{premio:data.premio,usuarioReal:data.usuario}:null;
+  }catch{return null;}
+}
+
+async function registrarGiro(user,fp,premio) {
+  const {fecha,horaISO,horaUTC}=nowAR();
+  try{
+    await sb.from('giros').insert([{
+      usuario:user, fingerprint:fp, premio, fecha,
+      hora:horaISO, hora_local:horaISO, hora_utc:horaUTC,
+      pasador_id:CFG.pasador_id, casino:CASINO_NOMBRE, juego:JUEGO
+    }]);
+  }catch(e){console.warn(e);}
+}
+
+// ════════════════════════════════════════════════════
+//  FONDO ESTRELLAS
+// ════════════════════════════════════════════════════
+function buildStars(){
+  const cont=document.getElementById('bgStars');
+  for(let i=0;i<40;i++){
+    const s=document.createElement('div'); s.className='bg-star';
+    const sz=1+Math.random()*2;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*70}%;--d:${2+Math.random()*4}s;--delay:${Math.random()*4}s`;
+    cont.appendChild(s);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  SVG VASOS (calavera estilo Pixar/Halloween)
+// ════════════════════════════════════════════════════
+function cupSVG(color='#2a0035') {
+  return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="cupG" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="${color}"/>
+        <stop offset="1" stop-color="#0d0010"/>
+      </linearGradient>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- Cuerpo del vaso -->
+    <rect x="28" y="24" width="200" height="148" rx="28" fill="url(#cupG)" stroke="rgba(255,100,200,.25)" stroke-width="2"/>
+    <!-- Brillo lateral izquierdo -->
+    <rect x="36" y="36" width="8" height="100" rx="4" fill="rgba(255,255,255,.08)"/>
+    <!-- Pie del vaso -->
+    <rect x="96" y="172" width="64" height="16" rx="8" fill="rgba(255,255,255,.06)"/>
+    <rect x="82" y="188" width="92" height="12" rx="6" fill="rgba(255,255,255,.04)"/>
+    <!-- Calavera PIXAR: cara redonda y ojos grandes -->
+    <ellipse cx="128" cy="94" rx="52" ry="46" fill="rgba(255,255,255,.92)" filter="url(#glow)"/>
+    <!-- Ojos — grandes y expresivos -->
+    <ellipse cx="108" cy="88" rx="14" ry="16" fill="#1a0020"/>
+    <ellipse cx="148" cy="88" rx="14" ry="16" fill="#1a0020"/>
+    <!-- Brillo en ojos -->
+    <circle cx="115" cy="83" r="4" fill="rgba(255,100,200,.5)"/>
+    <circle cx="155" cy="83" r="4" fill="rgba(255,100,200,.5)"/>
+    <!-- Nariz triangular -->
+    <polygon points="128,98 121,110 135,110" fill="rgba(0,0,0,.4)"/>
+    <!-- Boca sonrisa torcida -->
+    <path d="M110,122 Q128,136 146,122" stroke="#1a0020" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- Dientitos -->
+    <rect x="118" y="122" width="8" height="8" rx="2" fill="#1a0020" opacity=".7"/>
+    <rect x="130" y="122" width="8" height="8" rx="2" fill="#1a0020" opacity=".7"/>
+    <!-- Decoración naranja arriba del vaso -->
+    <text x="128" y="22" text-anchor="middle" font-size="18" fill="rgba(255,140,0,.6)">🎃</text>
+  </svg>`;
+}
+
+// ════════════════════════════════════════════════════
+//  ESTADO DEL JUEGO
+// ════════════════════════════════════════════════════
+const $ = s => document.querySelector(s);
+let username='', fingerprint='';
+let playing=false, gameOver=false;
+let order=[0,1,2], ballPos=0;
+const LEFTS=['18%','50%','82%'];
+const cupEls=[$('#cup0'),$('#cup1'),$('#cup2')];
+const ballEl=$('#ball');
+
+// Inyectar SVG en los vasos
+cupEls.forEach(c => c.innerHTML = cupSVG());
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+const delay = ms => new Promise(r=>setTimeout(r,ms));
+function setState(txt){ const el=$('#stateEl'); if(el) el.textContent=txt; }
+function setStatus(txt){ const el=$('#statusBox'); if(el) el.textContent=txt; }
+function placeCups(){ for(let v=0;v<3;v++) cupEls[v].style.left=LEFTS[order[v]]; }
+
+// Colocar la pelota en la posición lógica (invisible — debajo del vaso)
+function setBallPos(pos){
+  ballPos=pos;
+  ballEl.style.left=LEFTS[pos];
+}
+
+// Levantar o bajar un vaso. resolve cuando la animación termina
+function liftCup(v, up=true){
+  return new Promise(r=>{
+    const ms = up ? 450 : 380;
+    if(up) cupEls[v].classList.add('lift');
+    else   cupEls[v].classList.remove('lift');
+    setTimeout(r, ms);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  ANIMACIÓN DEL ORIGINAL — pelota entra al vaso, mezcla con spin
+// ════════════════════════════════════════════════════
+
+// Swap con spin — idéntico al original
+function swapVisible(a,b){
+  [order[a],order[b]]=[order[b],order[a]];
+  cupEls[a].classList.add('spin');
+  cupEls[b].classList.add('spin');
+  placeCups();
+  setTimeout(()=>{ cupEls[a].classList.remove('spin'); cupEls[b].classList.remove('spin'); },450);
+}
+
+// La pelota entra al vaso y empieza la mezcla — igual al original
+function animateBallIntoCup(){
+  // Mostrar pelota
+  ballEl.classList.remove('hide');
+  // Levantar el vaso donde está
+  cupEls[ballPos].classList.add('lift');
+  setTimeout(()=>{
+    // Bajar el vaso (tapa la pelota)
+    cupEls[ballPos].classList.remove('lift');
+    setTimeout(()=>{
+      // Ocultar pelota y mezclar
+      ballEl.classList.add('hide');
+      complexShuffle();
+    },450);
+  },700);
+}
+
+// Mezcla del original con setInterval — empieza lento y acelera
+function complexShuffle(){
+  setState('Mezclando… 👀');
+  setStatus('¡Seguile la pista a la calavera! 💀');
+  playing=false;
+
+  // Señuelo inicial
+  const fake=Math.floor(Math.random()*3);
+  cupEls[fake].classList.add('lift');
+  setTimeout(()=>cupEls[fake].classList.remove('lift'),300);
+
+  const steps=22+Math.floor(Math.random()*8);
+  let t=0;
+  // Empieza lento (500ms) y va a 300ms — jugador puede seguirlo al principio
+  const timer=setInterval(()=>{
+    if(Math.random()<0.25){ order=[order[2],order[0],order[1]]; placeCups(); }
+    else { const a=Math.floor(Math.random()*3); const b=(a+1+Math.floor(Math.random()*2))%3; swapVisible(a,b); }
+    if(Math.random()<0.15){ const v=Math.floor(Math.random()*3); cupEls[v].classList.add('lift'); setTimeout(()=>cupEls[v].classList.remove('lift'),240); }
+    t++;
+    if(t>=steps){ clearInterval(timer); enablePick(); }
+  }, Math.max(300, 500 - t*8 + Math.floor(Math.random()*60)));
+}
+
+// Habilitar elección
+function enablePick(){
+  setState('¡Elegí un vaso! 💀');
+  setStatus('Tocá el vaso donde creés que está la calavera 💀');
+  playing=true;
+  cupEls.forEach((c,i)=>{ c.style.cursor='pointer'; c.onclick=()=>checkChoice(i); });
+}
+
+// Revelar resultado
+function checkChoice(v){
+  if(!playing) return;
+  playing=false;
+  cupEls.forEach(c=>{ c.onclick=null; c.style.cursor='not-allowed'; });
+
+  // Decidir resultado ANTES de revelar
+  const playerWins = Math.random()*100 < PROB_GANAR;
+
+  // Si pierde → mover pelota a otro vaso silenciosamente
+  if(!playerWins){
+    const posActual = order[v];
+    const otras = [0,1,2].filter(p=>p!==posActual);
+    ballPos = otras[Math.floor(Math.random()*otras.length)];
+  }
+
+  // Revelar — igual al original: mostrar bola y levantar vaso elegido
+  ballEl.classList.remove('hide');
+  ballEl.style.left = LEFTS[ballPos];
+  cupEls[v].classList.add('lift');
+
+  const premio = playerWins ? PREMIO_GANA : PREMIO_PIERDE;
+  const premioTxt = toMoney(premio);
+  const msgEl=document.getElementById('messageEl');
+
+  if(playerWins){
+    msgEl.innerHTML=`<div class="msg-win">🎉 ¡ADIVINASTE! GANÁS ${premioTxt} 🎉</div>`;
+    setState('¡GANASTE! 🏆');
+    setStatus(`¡Increíble! Ganás ${premioTxt}. Reclamá por WhatsApp.`);
+    confetiStart();
+  } else {
+    msgEl.innerHTML=`<div class="msg-lose">💀 ¡Mala suerte! Tu consolación: ${premioTxt}</div>`;
+    setState('Mejor suerte la próxima 😈');
+    setStatus(`No adivinaste, pero igual te llevás ${premioTxt}.`);
+  }
+
+  const wspTxt=`Hola, soy ${username}, ${playerWins?'gané':'jugué y gané la consolación de'} ${premioTxt} en VASOS MALDITOS de ${CASINO_NOMBRE}.`;
+  const bw=document.getElementById('btn-wsp');
+  if(bw){ bw.href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(wspTxt)}`; bw.style.display='block'; }
+
+  registrarGiro(username, fingerprint, premioTxt);
+  setLocalLock(premioTxt, username);
+  gameOver=true;
+}
+
+// INICIAR
+$('#startBtn').addEventListener('click', ()=>{
+  document.getElementById('startBtn').style.display='none';
+  gameOver=false; playing=false;
+  order=[0,1,2]; placeCups();
+  cupEls.forEach(c=>{ c.classList.remove('lift','spin','clickable'); c.onclick=null; c.style.cursor='not-allowed'; });
+  ballEl.classList.add('hide');
+  document.getElementById('messageEl').innerHTML='';
+  const bw=document.getElementById('btn-wsp'); if(bw) bw.style.display='none';
+
+  // Posicionar pelota aleatoriamente y mostrarla
+  ballPos=Math.floor(Math.random()*3);
+  ballEl.style.left=LEFTS[ballPos];
+
+  setState('Mirá bien dónde está… 👀');
+  setStatus('👀 Fijate BIEN dónde está la calavera antes de mezclar.');
+
+  // Mostrar 1.5s y luego meter al vaso y mezclar
+  ballEl.classList.remove('hide');
+  setTimeout(()=>animateBallIntoCup(), 1500);
+});
+
+// ════════════════════════════════════════════════════
+//  CONFETTI HALLOWEEN
+// ════════════════════════════════════════════════════
+let confRAF=null;
+function confetiStart(){
+  const canvas=$('#confeti'), ctx=canvas.getContext('2d');
+  function rs(){canvas.width=innerWidth;canvas.height=innerHeight;} rs(); addEventListener('resize',rs);
+  const colors=['#ff8c00','#d4145a','#7c3aed','#ff6b9d','#ffd600','#fff'];
+  const parts=Array.from({length:140},()=>({
+    x:Math.random()*innerWidth, y:-Math.random()*innerHeight*.5,
+    r:Math.random()*5+3, c:colors[Math.floor(Math.random()*colors.length)],
+    s:Math.random()*2+1, t:Math.random()*Math.PI*2
+  }));
+  function loop(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    parts.forEach(p=>{
+      ctx.beginPath();ctx.fillStyle=p.c;ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      p.t+=.03;p.y+=p.s+Math.sin(p.t)*.35;p.x+=Math.cos(p.t)*.35;
+      if(p.y>canvas.height+10){p.y=-10;p.x=Math.random()*canvas.width;}
+      if(p.x<-10) p.x=canvas.width+10; if(p.x>canvas.width+10) p.x=-10;
+    });
+    confRAF=requestAnimationFrame(loop);
+  }
+  if(!confRAF) loop();
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function startClock(){
+  function tick(){const el=$('#fechaHud');if(el) el.textContent=nowAR().display;} tick();
+  clearInterval(window.__clk); window.__clk=setInterval(tick,1000);
+}
+
+// ════════════════════════════════════════════════════
+//  BOTÓN ENTRAR
+// ════════════════════════════════════════════════════
+document.getElementById('goBtn').addEventListener('click', async()=>{
+  const n=(document.getElementById('username').value||'').trim().toLowerCase();
+  if(!n){ document.getElementById('username').classList.add('error'); return; }
+  document.getElementById('username').classList.remove('error');
+
+  const noticeEl=document.getElementById('notice');
+
+  // Bloqueo local
+  const lk=readLocalLock();
+  if(lk){ noticeEl.textContent=`🕯️ Ya jugaste hoy (${lk.prize||'—'}). Volvé mañana.`; return; }
+
+  // Nube
+  try{
+    const jug=await checkYaJugo(n,fingerprint);
+    if(jug){ noticeEl.textContent=`🕯️ Ya jugaste hoy como ${jug.usuarioReal}. Volvé mañana.`; return; }
+  }catch(e){}
+
+  username=n;
+  document.getElementById('who').textContent=username;
+  document.getElementById('screen-start').style.display='none';
+  document.getElementById('screen-game').style.display='block';
+  startClock();
+});
+
+document.getElementById('username').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('goBtn').click(); });
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async()=>{
+  buildStars();
+
+  const casinoId=new URLSearchParams(window.location.search).get('p')
+    ||new URLSearchParams(window.location.search).get('casino');
+
+  if(!casinoId){
+    document.getElementById('loadingScreen').innerHTML='<p style="font-family:Creepster,cursive;color:#d4145a;font-size:1.2rem;text-align:center;padding:20px">⚠️ Link inválido. Pedile el link correcto a tu casino.</p>';
+    return;
+  }
+
+  CFG=await loadConfig(casinoId);
+  if(!CFG){
+    document.getElementById('loadingScreen').innerHTML='<p style="font-family:Creepster,cursive;color:#d4145a;font-size:1.2rem;text-align:center;padding:20px">⚠️ Casino no encontrado.</p>';
+    return;
+  }
+
+  CASINO_NOMBRE=CFG.nombre;
+  ADMIN_WA=CFG.whatsapp;
+  fingerprint=await getFingerprint();
+
+  document.title=`Vasos Malditos — ${CASINO_NOMBRE}`;
+  document.querySelectorAll('#casinoTag').forEach(el=>el.textContent=CASINO_NOMBRE);
+  document.getElementById('infoTitle').textContent=`🎃 ${CASINO_NOMBRE} 🎃`;
+  document.getElementById('waContacto').href=`https://wa.me/${ADMIN_WA}`;
+
+  // Actualizar premios en bienvenida y HUD
+  document.getElementById('howWin').textContent=toMoney(PREMIO_GANA);
+  document.getElementById('howLose').textContent=toMoney(PREMIO_PIERDE);
+  document.getElementById('hudPremioWin').textContent=toMoney(PREMIO_GANA);
+  document.getElementById('hudPremioLose').textContent=toMoney(PREMIO_PIERDE);
+
+  document.getElementById('loadingScreen').style.display='none';
+});
+</script>
+</body>
+</html>

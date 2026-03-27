@@ -1,0 +1,590 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"/>
+  <title>Dado de la Suerte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --gold:#ffd65a; --gold2:#c59b00; --gold3:#7a5c00;
+      --bg1:#0a0a0a; --bg2:#14110b;
+      --ink:#fff7d6; --muted:#a08040;
+      --card:#fff1bf; --card-ink:#1c1404;
+      --green:#25D366; --danger:#ef4444;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{
+      height:100%;
+      font-family:'Montserrat','Arial Black',system-ui,sans-serif;
+      text-transform:uppercase;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 15% -10%,rgba(197,155,0,.13) 0%,transparent 60%),
+        radial-gradient(900px 600px at 110% 10%,rgba(255,215,0,.08) 0%,transparent 60%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
+      overflow-x:hidden;
+    }
+    /* patrón puntitos fondo */
+    body::before{
+      content:"";position:fixed;inset:0;
+      background:radial-gradient(white .7px,transparent 1px),radial-gradient(white .7px,transparent 1px);
+      background-size:10px 10px,20px 20px;background-position:0 0,5px 5px;
+      opacity:.05;z-index:0;pointer-events:none;
+    }
+
+    /* ── LOADING ── */
+    #loadingScreen{
+      position:fixed;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:16px;z-index:999;
+      background:radial-gradient(1200px 700px at 15% -10%,rgba(197,155,0,.13) 0%,transparent 60%),linear-gradient(135deg,var(--bg1),var(--bg2));
+    }
+    .spin-loader{width:46px;height:46px;border:4px solid rgba(255,215,0,.2);border-top-color:var(--gold);border-radius:50%;animation:spinL .8s linear infinite}
+    @keyframes spinL{to{transform:rotate(360deg)}}
+    .loading-txt{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;letter-spacing:2px}
+
+    /* ── PANTALLAS ── */
+    .pantalla{display:none;flex-direction:column;justify-content:flex-start;align-items:center;
+      min-height:100%;padding:16px 20px 30px;text-align:center;position:relative;z-index:1}
+    .pantalla.activa{display:flex}
+
+    /* ── TÍTULOS ── */
+    h2{font-family:'Cinzel',serif;font-size:clamp(1.4rem,5vw,2.2rem);color:var(--gold);
+      letter-spacing:.5px;text-shadow:0 2px 0 rgba(0,0,0,.65);margin-bottom:4px}
+    h1{font-size:clamp(.95rem,3.5vw,1.2rem);color:var(--ink);margin-bottom:4px}
+    .subtitulo{font-size:clamp(.8rem,2.8vw,.95rem);color:var(--muted);margin-bottom:6px}
+
+    /* ── HUD ── */
+    .hud{display:flex;gap:10px;margin:8px 0 4px;flex-wrap:wrap;justify-content:center}
+    .hud-item{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);
+      border-radius:8px;padding:6px 12px;font-size:.8rem;color:var(--muted);font-weight:700}
+    .hud-item b{color:var(--gold)}
+
+    /* ── INPUT ── */
+    input{
+      padding:14px;margin-top:12px;border:2px solid rgba(255,215,0,.25);border-radius:12px;
+      font-size:1rem;width:90%;max-width:380px;text-align:center;
+      background:rgba(255,215,0,.06);color:var(--ink);outline:none;
+      font-family:'Montserrat',sans-serif;font-weight:700;letter-spacing:.5px;
+    }
+    input::placeholder{color:var(--muted);text-transform:uppercase}
+    input:focus{border-color:var(--gold);background:rgba(255,215,0,.1)}
+    input.error{border-color:var(--danger)}
+
+    /* ── BOTONES ── */
+    .btn-gold{
+      padding:14px;margin-top:12px;border-radius:14px;width:90%;max-width:380px;
+      background:linear-gradient(180deg,var(--gold),var(--gold2));color:#1b1304;
+      font-weight:800;font-size:1rem;border:2px solid var(--gold3);cursor:pointer;
+      box-shadow:0 6px 0 var(--gold3),0 10px 18px rgba(0,0,0,.35);
+      font-family:'Montserrat',sans-serif;letter-spacing:.5px;
+      transition:transform .1s,box-shadow .1s;
+    }
+    .btn-gold:active:not(:disabled){transform:translateY(2px);box-shadow:0 4px 0 var(--gold3),0 6px 12px rgba(0,0,0,.3)}
+    .btn-gold:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.2)}
+    .btn-wa{
+      display:none;padding:14px;margin-top:10px;border-radius:14px;width:90%;max-width:380px;
+      background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;
+      font-weight:800;font-size:1rem;border:0;cursor:pointer;text-decoration:none;
+      box-shadow:0 6px 0 #0c5e51,0 10px 18px rgba(0,0,0,.35);
+      font-family:'Montserrat',sans-serif;letter-spacing:.5px;
+    }
+
+    /* ── PREMIOS TABLA ── */
+    #premios-container{
+      display:grid;grid-template-columns:1fr 1fr;gap:8px;
+      margin:10px 0;width:90%;max-width:420px;
+    }
+    .cara-dado{
+      background:radial-gradient(120% 100% at 50% -10%,#fffbe6 0%,var(--card) 35%,#ffe08a 120%);
+      color:var(--card-ink);border:2px solid rgba(122,92,0,.35);
+      border-radius:12px;padding:8px 10px;
+      font-size:clamp(.75rem,2.8vw,.9rem);font-weight:800;
+      box-shadow:0 4px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.45);
+      display:flex;align-items:center;gap:8px;line-height:1.2;
+    }
+    .cara-dado .num{
+      width:26px;height:26px;border-radius:6px;background:var(--card-ink);color:var(--gold);
+      display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;
+      flex-shrink:0;
+    }
+
+    /* ── DADO SVG ── */
+    .dado-wrap{margin:16px auto;position:relative;width:110px;height:110px}
+    #dado{
+      width:110px;height:110px;border-radius:18px;
+      background:#fff9e6;
+      box-shadow:0 0 24px rgba(255,215,0,.3),0 8px 20px rgba(0,0,0,.4);
+      display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+      gap:6px;padding:10px;
+      transition:transform .15s ease;
+    }
+    .punto{width:100%;aspect-ratio:1;background:#1a1200;border-radius:50%}
+    .punto-vacio{width:100%;aspect-ratio:1}
+
+    /* Animación sacudida */
+    @keyframes shake{
+      0%{transform:rotate(-8deg) scale(1.05)}
+      15%{transform:rotate(8deg) scale(1.08)}
+      30%{transform:rotate(-6deg) scale(1.06)}
+      45%{transform:rotate(6deg) scale(1.07)}
+      60%{transform:rotate(-4deg) scale(1.04)}
+      75%{transform:rotate(4deg) scale(1.05)}
+      90%{transform:rotate(-2deg) scale(1.02)}
+      100%{transform:rotate(0deg) scale(1)}
+    }
+    .dado-animando{animation:shake .25s ease infinite}
+    /* bounce al terminar */
+    @keyframes bounce{
+      0%{transform:scale(1)}30%{transform:scale(1.15)}60%{transform:scale(.95)}80%{transform:scale(1.05)}100%{transform:scale(1)}
+    }
+    .dado-bounce{animation:bounce .4s ease}
+
+    /* ── MENSAJE PREMIO ── */
+    #mensaje-premio{
+      font-size:clamp(.85rem,3vw,1rem);margin-top:12px;
+      background:rgba(255,215,0,.08);padding:14px;border-radius:14px;
+      color:var(--ink);text-align:center;white-space:pre-line;
+      border:1px solid rgba(255,215,0,.2);width:90%;max-width:380px;
+      min-height:52px;font-weight:700;line-height:1.4;
+    }
+
+    /* ── INFO BOX BIENVENIDA ── */
+    .info-box{
+      background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);
+      border-radius:14px;padding:14px 16px;margin-top:12px;width:90%;max-width:380px;text-align:center;
+    }
+    .info-box-title{font-family:'Cinzel',serif;font-size:1rem;color:var(--gold);margin-bottom:4px}
+    .info-box-sub{font-size:.75rem;color:var(--muted);line-height:1.4;font-weight:600}
+
+    /* ── CONFETTI ── */
+    #canvas-confeti{position:fixed;inset:0;pointer-events:none;z-index:998;display:none}
+
+    @media(max-width:400px){
+      #premios-container{grid-template-columns:1fr}
+      .cara-dado{font-size:.8rem}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="spin-loader"></div>
+  <p class="loading-txt">Cargando casino...</p>
+</div>
+
+<!-- PANTALLA BIENVENIDA -->
+<div id="pantalla-bienvenida" class="pantalla">
+  <h2 id="nombreCasino1">CASINO</h2>
+  <h1>🎲 DADO DE LA SUERTE 🎲</h1>
+  <p class="subtitulo">INGRESÁ TU NOMBRE Y PROBÁ TU SUERTE</p>
+
+  <input id="input-usuario" type="text" placeholder="Escribí tu nombre" autocomplete="off"/>
+  <button class="btn-gold" id="btn-ingresar">🎲 ENTRAR AL JUEGO ✅</button>
+
+  <div class="info-box">
+    <div class="info-box-title" id="infoBoxTitle">💛 CASINO 💛</div>
+    <div class="info-box-sub">LÍNEA ACTIVA 24HS · TODOS LOS PREMIOS SE PAGAN AL INSTANTE</div>
+    <a id="waContacto" href="#" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 18px;background:linear-gradient(180deg,#25D366,#128C7E);color:#fff;border-radius:10px;font-size:.85rem;font-weight:800;text-decoration:none">📞 CONTACTANOS POR WHATSAPP</a>
+  </div>
+
+  <!-- Premios visibles en bienvenida -->
+  <div style="font-size:.75rem;color:var(--muted);margin-top:14px;font-weight:700;letter-spacing:.5px">PREMIOS POSIBLES</div>
+  <div id="premios-container-welcome" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0;width:90%;max-width:420px"></div>
+</div>
+
+<!-- PANTALLA JUEGO -->
+<div id="pantalla-juego" class="pantalla">
+  <h2 id="nombreCasino2">CASINO</h2>
+  <p class="subtitulo">🎲 LANZÁ EL DADO Y CONOCÉ TU SUERTE</p>
+
+  <div class="hud">
+    <div class="hud-item">👤 <b id="usuario-nombre">—</b></div>
+    <div class="hud-item" id="fecha-hora">🗓️ — ⏰ —</div>
+  </div>
+
+  <!-- Premios -->
+  <div id="premios-container"></div>
+
+  <!-- Dado -->
+  <div class="dado-wrap">
+    <div id="dado"></div>
+  </div>
+
+  <button class="btn-gold" id="tirar-btn">🎲 LANZAR DADO 🎲</button>
+  <a id="btn-wsp" class="btn-wa" href="#" target="_blank" rel="noopener">💬 RECLAMAR POR WHATSAPP</a>
+  <div id="mensaje-premio"></div>
+</div>
+
+<canvas id="canvas-confeti"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ════════════════════════════════════════════════════
+//  CREDENCIALES
+// ════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://bhbtbkphxcbkcwoemezv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJoYnRia3BoeGNia2N3b2VtZXp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTEzNjEsImV4cCI6MjA5MDAyNzM2MX0.aYVthVMQNjzTFO9ts-_xXUHF7IK5y9fePW0jh17bdnA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {auth:{persistSession:false}});
+
+// ════════════════════════════════════════════════════
+//  ESTADO
+// ════════════════════════════════════════════════════
+let CFG = null;
+let CASINO_NOMBRE = '';
+let ADMIN_WA = '';
+const JUEGO = 'dados';
+
+// Premios default — idénticos al original
+const PREMIOS_DEFAULT = [
+  '$1.000',
+  '$2.000',
+  '$3.000',
+  '$4.000',
+  '$5.000',
+  '$6.000'
+];
+
+let PREMIOS = [...PREMIOS_DEFAULT];
+let usuario = '';
+let fingerprint = '';
+let animEnCurso = false;
+
+// ════════════════════════════════════════════════════
+//  CARGAR CONFIG DESDE SUPABASE
+//  Campos configurables en juegos_config:
+//  nombre, tipo, whatsapp,
+//  premios_tabla: JSON array de 6 strings (uno por cara)
+//  ["Premio cara 1","Premio cara 2",...,"Premio cara 6"]
+//  activo: true/false
+// ════════════════════════════════════════════════════
+async function loadConfig(casinoId) {
+  const {data,error} = await sb
+    .from('juegos_config')
+    .select('*')
+    .eq('pasador_id', casinoId)
+    .eq('juego', JUEGO)
+    .eq('activo', true)
+    .single();
+  if (error||!data) return null;
+
+  if (data.premios_tabla) {
+    const pt = typeof data.premios_tabla==='string' ? JSON.parse(data.premios_tabla) : data.premios_tabla;
+    if (Array.isArray(pt) && pt.length===6) PREMIOS = pt;
+  }
+  return data;
+}
+
+// ════════════════════════════════════════════════════
+//  HORA AR
+// ════════════════════════════════════════════════════
+function nowAR() {
+  const tz='America/Argentina/Buenos_Aires', now=new Date();
+  const parts=new Intl.DateTimeFormat('sv-SE',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+  const get=t=>parts.find(p=>p.type===t).value;
+  const fecha=`${get('year')}-${get('month')}-${get('day')}`;
+  return {fecha,horaISO:`${fecha}T${get('hour')}:${get('minute')}:${get('second')}-03:00`,horaUTC:now.toISOString(),display:`${get('day')}/${get('month')} ${get('hour')}:${get('minute')}:${get('second')}`};
+}
+
+// ════════════════════════════════════════════════════
+//  FINGERPRINT
+// ════════════════════════════════════════════════════
+async function getFingerprint() {
+  try {
+    const seed = (() => { let s=localStorage.getItem('rg_seed'); if(!s){s=Math.random().toString(36).slice(2)+Date.now();localStorage.setItem('rg_seed',s);} return s; })();
+    const txt=[navigator.userAgent,navigator.language,navigator.platform,screen.width+'x'+screen.height,Intl.DateTimeFormat().resolvedOptions().timeZone,seed].join('|');
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { return 'fp_'+Math.random().toString(16).slice(2); }
+}
+
+// ════════════════════════════════════════════════════
+//  BLOQUEO DIARIO
+// ════════════════════════════════════════════════════
+function blockKey(u,fp){ const {fecha}=nowAR(); return `dados:${fecha}:${CASINO_NOMBRE}:${u}:${fp}`; }
+function setPlayed(u,fp){ localStorage.setItem(blockKey(u,fp),'1'); }
+function isPlayed(u,fp){ return !!localStorage.getItem(blockKey(u,fp)); }
+
+async function checkYaJugo(user,fp) {
+  const {fecha}=nowAR();
+  const {data,error}=await sb.from('giros').select('usuario,premio').eq('fecha',fecha).eq('pasador_id',CFG.pasador_id).eq('juego',JUEGO).or(`usuario.eq.${user},fingerprint.eq.${fp}`).limit(1).maybeSingle();
+  if(error&&error.code!=='PGRST116') return null;
+  return data||null;
+}
+
+async function registrarGiro(user,fp,premioTxt) {
+  const {fecha,horaISO,horaUTC}=nowAR();
+  const {error}=await sb.from('giros').insert([{
+    usuario:user, fingerprint:fp, premio:premioTxt,
+    fecha, hora:horaISO, hora_local:horaISO, hora_utc:horaUTC,
+    pasador_id:CFG.pasador_id, casino:CASINO_NOMBRE, juego:JUEGO
+  }]);
+  if(error) throw error;
+}
+
+// ════════════════════════════════════════════════════
+//  DADO — caras con puntos SVG (igual al original)
+// ════════════════════════════════════════════════════
+const CONFIGURACIONES = {
+  0: [4],
+  1: [0,8],
+  2: [0,4,8],
+  3: [0,2,6,8],
+  4: [0,2,4,6,8],
+  5: [0,2,3,5,6,8]
+};
+
+function mostrarCara(cara) {
+  const dado = document.getElementById('dado');
+  dado.innerHTML = '';
+  if (cara === null) {
+    // Cara inicial — letra O dorada
+    const g = document.createElement('div');
+    g.style.cssText='font-size:2rem;font-weight:900;color:#1b1304;grid-column:2;grid-row:2;font-family:Cinzel,serif;';
+    g.textContent='O';
+    dado.appendChild(g);
+    return;
+  }
+  const puntos = CONFIGURACIONES[cara];
+  for (let i=0;i<9;i++) {
+    const el=document.createElement('div');
+    el.className=puntos.includes(i)?'punto':'punto-vacio';
+    dado.appendChild(el);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  RENDER PREMIOS
+// ════════════════════════════════════════════════════
+function renderPremios(containerId) {
+  const cont=document.getElementById(containerId);
+  if(!cont) return;
+  cont.innerHTML=PREMIOS.map((p,i)=>`
+    <div class="cara-dado">
+      <div class="num">${i+1}</div>
+      <span>${p}</span>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════
+//  RELOJ
+// ════════════════════════════════════════════════════
+function actualizarHora() {
+  const el=document.getElementById('fecha-hora');
+  if(el){ const {display}=nowAR(); el.innerHTML=`🗓️ ${display.split(' ')[0]} ⏰ ${display.split(' ')[1]}`; }
+}
+
+// ════════════════════════════════════════════════════
+//  INICIAR JUEGO
+// ════════════════════════════════════════════════════
+async function iniciarJuego() {
+  const input=document.getElementById('input-usuario');
+  usuario=(input.value||'').trim();
+  if(!usuario){ input.classList.add('error'); return; }
+  input.classList.remove('error');
+
+  document.getElementById('usuario-nombre').textContent=usuario;
+  document.getElementById('pantalla-bienvenida').classList.remove('activa');
+  document.getElementById('pantalla-juego').classList.add('activa');
+  mostrarCara(null);
+  actualizarHora();
+
+  const jugo = isPlayed(usuario,fingerprint) || await checkYaJugo(usuario,fingerprint);
+  const btn=document.getElementById('tirar-btn');
+  const msg=document.getElementById('mensaje-premio');
+  const btnWsp=document.getElementById('btn-wsp');
+  btnWsp.style.display='none';
+
+  if(jugo){
+    btn.disabled=true;
+    const nombreReal=typeof jugo==='object'?jugo.usuario:usuario;
+    const premioReal=typeof jugo==='object'?jugo.premio:'—';
+    msg.textContent=`⛔ YA JUGASTE HOY COMO ${nombreReal.toUpperCase()} — PREMIO: ${premioReal}`;
+  } else {
+    btn.disabled=false;
+    msg.textContent='';
+  }
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+// ════════════════════════════════════════════════════
+//  TIRAR DADO — animación mejorada con rAF
+// ════════════════════════════════════════════════════
+async function tirarDado() {
+  if(animEnCurso) return;
+  animEnCurso=true;
+
+  const dado=document.getElementById('dado');
+  const msg=document.getElementById('mensaje-premio');
+  const btn=document.getElementById('tirar-btn');
+  const btnWsp=document.getElementById('btn-wsp');
+
+  // Re-verificar bloqueo en la nube
+  const jugo=await checkYaJugo(usuario,fingerprint);
+  if(jugo){
+    msg.textContent=`⛔ YA COBRASTE HOY — ${jugo.premio}`;
+    btn.disabled=true; btnWsp.style.display='none';
+    animEnCurso=false; return;
+  }
+
+  btn.disabled=true; msg.textContent=''; btnWsp.style.display='none';
+
+  // Elegir resultado final ANTES de animar
+  const resultadoFinal = Math.floor(Math.random()*6);
+
+  // ── Animación con requestAnimationFrame ──
+  // El dado muestra caras aleatorias girando, desacelerando suavemente
+  // Duración total: 2.8s aprox
+  const DURACION = 2800;
+  const t0 = performance.now();
+  let caraActual = -1;
+  let ultimoCambio = t0;
+
+  // El intervalo entre caras empieza en 80ms y llega a 350ms (efecto freno)
+  // usando una curva cuadrática
+  function intervaloPara(progreso) {
+    // 0..1 → 80ms..350ms
+    return 80 + Math.round(progreso * progreso * 270);
+  }
+
+  dado.classList.add('dado-animando');
+
+  function frame(now) {
+    const elapsed = now - t0;
+    const progreso = Math.min(1, elapsed / DURACION);
+    const intervalo = intervaloPara(progreso);
+
+    if (now - ultimoCambio >= intervalo) {
+      // En el último 15% de la animación mostramos la cara final
+      const cara = progreso > 0.85 ? resultadoFinal : Math.floor(Math.random()*6);
+      if (cara !== caraActual) {
+        mostrarCara(cara);
+        caraActual = cara;
+      }
+      ultimoCambio = now;
+    }
+
+    if (progreso < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      // Terminar — mostrar cara final definitiva
+      dado.classList.remove('dado-animando');
+      mostrarCara(resultadoFinal);
+      dado.classList.add('dado-bounce');
+      setTimeout(()=>dado.classList.remove('dado-bounce'), 420);
+      onResultado(resultadoFinal);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+async function onResultado(idx) {
+  const premioTxt=PREMIOS[idx];
+  const msg=document.getElementById('mensaje-premio');
+  const btnWsp=document.getElementById('btn-wsp');
+
+  msg.textContent=`🎉 ${usuario}, ¡TE LLEVÁS: ${premioTxt}!\n📸 CAPTURÁ Y RECLAMÁ TU PREMIO`;
+
+  const texto=`Hola, soy ${usuario}, gané ${premioTxt} en el DADO DE LA SUERTE de ${CASINO_NOMBRE}.`;
+  btnWsp.href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(texto)}`;
+  btnWsp.style.display='block';
+
+  lanzarConfeti();
+
+  try {
+    await registrarGiro(usuario, fingerprint, premioTxt);
+    setPlayed(usuario, fingerprint);
+  } catch(e) {
+    console.error(e);
+    msg.textContent+='\n⚠️ No se pudo registrar. Mostrá la captura al reclamar.';
+  }
+  animEnCurso=false;
+}
+
+// ════════════════════════════════════════════════════
+//  CONFETTI dorado/plateado — igual al original + canvas resize
+// ════════════════════════════════════════════════════
+function lanzarConfeti() {
+  const canvas=document.getElementById('canvas-confeti');
+  const ctx=canvas.getContext('2d');
+  canvas.style.display='block';
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const cantidad=140;
+  const confetis=Array.from({length:cantidad},()=>({
+    x:Math.random()*canvas.width, y:Math.random()*canvas.height-canvas.height,
+    r:Math.random()*6+4, d:Math.random()*cantidad,
+    color:Math.random()>.5?'#FFD700':'#C0C0C0',
+    tilt:Math.floor(Math.random()*10)-10
+  }));
+  const t0=performance.now();
+  function draw(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confetis.forEach(c=>{
+      ctx.beginPath(); ctx.lineWidth=c.r/2; ctx.strokeStyle=c.color;
+      ctx.moveTo(c.x+c.tilt+c.r/4,c.y); ctx.lineTo(c.x+c.tilt,c.y+c.tilt+c.r/4); ctx.stroke();
+      c.y+=Math.cos(c.d)+1+c.r/2;
+      if(c.y>canvas.height){c.y=-10;c.x=Math.random()*canvas.width;}
+    });
+    if(t-t0<3500) requestAnimationFrame(draw);
+    else{ canvas.style.display='none'; ctx.clearRect(0,0,canvas.width,canvas.height); }
+  }
+  requestAnimationFrame(draw);
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async()=>{
+  const casinoId=new URLSearchParams(window.location.search).get('p')
+    ||new URLSearchParams(window.location.search).get('casino');
+
+  if(!casinoId){
+    document.getElementById('loadingScreen').innerHTML=
+      '<p style="font-family:Cinzel,serif;color:#ef4444;font-size:1rem;text-align:center;padding:20px">⚠️ Link inválido.<br>Pedile el link correcto a tu casino.</p>';
+    return;
+  }
+
+  CFG=await loadConfig(casinoId);
+  if(!CFG){
+    document.getElementById('loadingScreen').innerHTML=
+      '<p style="font-family:Cinzel,serif;color:#ef4444;font-size:1rem;text-align:center;padding:20px">⚠️ Casino no encontrado.<br>El link no es válido o el juego está inactivo.</p>';
+    return;
+  }
+
+  CASINO_NOMBRE=CFG.nombre;
+  ADMIN_WA=CFG.whatsapp;
+
+  document.title=`${CASINO_NOMBRE} — Dado Dorado`;
+  document.querySelectorAll('#nombreCasino1,#nombreCasino2').forEach(el=>el.textContent=CASINO_NOMBRE);
+  document.getElementById('infoBoxTitle').textContent=`💛 ${CASINO_NOMBRE} 💛`;
+  document.getElementById('waContacto').href=`https://wa.me/${ADMIN_WA}`;
+
+  // Render premios en ambas pantallas
+  renderPremios('premios-container');
+  renderPremios('premios-container-welcome');
+
+  // Fingerprint
+  fingerprint=await getFingerprint();
+
+  // Reloj
+  actualizarHora(); setInterval(actualizarHora,1000);
+
+  // Ocultar loading, mostrar bienvenida
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('pantalla-bienvenida').classList.add('activa');
+
+  // Mostrar cara inicial
+  mostrarCara(null);
+
+  // Eventos
+  document.getElementById('btn-ingresar').addEventListener('click', iniciarJuego);
+  document.getElementById('tirar-btn').addEventListener('click', tirarDado);
+  document.getElementById('input-usuario').addEventListener('keydown',e=>{if(e.key==='Enter') iniciarJuego();});
+});
+</script>
+</body>
+</html>
