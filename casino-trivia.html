@@ -692,6 +692,11 @@ async function applyDailyLockUI(currentUser){
     setDailyLockUI(premio, usuarioMostrado);
     return true;
   }
+  // Nube dice libre → limpiar cualquier localStorage viejo (admin reseteó)
+  try{
+    const hoyKey = hoyBA();
+    Object.keys(localStorage).filter(k=>k.includes(hoyKey)).forEach(k=>localStorage.removeItem(k));
+  }catch(e){}
   state.gameOver = false;
   btnSpin.disabled = false;
   btnBegin.disabled = false;

@@ -742,13 +742,22 @@ $('#btn-continuar').addEventListener('click', async() => {
   startClock(); go(P2);
   chancesLeft=MAX_CHANCES; renderChips(); resetRound();
 
-  const lk=readLocalLock();
-  if(lk){ blockToday(lk.prize,lk.user); return; }
-
+  // Nube primero → reset del admin funciona
   try{
     const jug=await checkYaJugo(usuario,fingerprint);
-    if(jug){ blockToday(jug.premio,jug.usuarioReal); return; }
-  }catch(e){}
+    if(jug){
+      // Nube confirma → actualizar localStorage
+      setLocalLock(jug.premio,jug.usuarioReal);
+      blockToday(jug.premio,jug.usuarioReal); return;
+    } else {
+      // Nube dice libre → limpiar localStorage (admin reseteó)
+      try{ localStorage.removeItem(LOCK_KEY()); }catch{}
+    }
+  }catch(e){
+    // Fallback: usar localStorage si falla la nube
+    const lk=readLocalLock();
+    if(lk){ blockToday(lk.prize,lk.user); return; }
+  }
 });
 
 $('#input-user').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#btn-continuar').click(); });

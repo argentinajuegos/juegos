@@ -604,9 +604,13 @@ async function iniciar(){
   document.getElementById('btn-wsp').style.display='none';
 
   if(jugado){
+    // Nube confirma → actualizar localStorage
     setLocalLock({usuario:jugado.usuarioReal,premio:jugado.premio});
     setMsg(`⛔ Ya jugaste hoy.\n👤 ${jugado.usuarioReal.toUpperCase()} — 🎁 ${jugado.premio}\n📲 Escribinos si es un error.`,'var(--red)');
     bloquearJuego(); return;
+  } else {
+    // Nube dice libre → limpiar localStorage (admin reseteó)
+    try{ localStorage.removeItem(lockKey()); }catch{}
   }
 
   puedeElegir=true;

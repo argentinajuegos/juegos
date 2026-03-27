@@ -519,17 +519,12 @@ function checkChoice(v){
   playing=false;
   cupEls.forEach(c=>{ c.onclick=null; c.style.cursor='not-allowed'; });
 
-  // Decidir resultado ANTES de revelar
-  const playerWins = Math.random()*100 < PROB_GANAR;
+  // Gana SI Y SOLO SI eligió el vaso donde está la pelota
+  // order[v] = posición lógica del vaso elegido
+  // ballPos  = posición lógica donde está la pelota real
+  const playerWins = (order[v] === ballPos);
 
-  // Si pierde → mover pelota a otro vaso silenciosamente
-  if(!playerWins){
-    const posActual = order[v];
-    const otras = [0,1,2].filter(p=>p!==posActual);
-    ballPos = otras[Math.floor(Math.random()*otras.length)];
-  }
-
-  // Revelar — igual al original: mostrar bola y levantar vaso elegido
+  // Revelar — mostrar bola donde realmente está, levantar vaso elegido
   ballEl.classList.remove('hide');
   ballEl.style.left = LEFTS[ballPos];
   cupEls[v].classList.add('lift');
@@ -624,15 +619,22 @@ document.getElementById('goBtn').addEventListener('click', async()=>{
 
   const noticeEl=document.getElementById('notice');
 
-  // Bloqueo local
-  const lk=readLocalLock();
-  if(lk){ noticeEl.textContent=`🕯️ Ya jugaste hoy (${lk.prize||'—'}). Volvé mañana.`; return; }
-
-  // Nube
+  // Verificar nube PRIMERO — así el reset del admin tiene efecto inmediato
   try{
     const jug=await checkYaJugo(n,fingerprint);
-    if(jug){ noticeEl.textContent=`🕯️ Ya jugaste hoy como ${jug.usuarioReal}. Volvé mañana.`; return; }
-  }catch(e){}
+    if(jug){
+      // Confirmar en nube → actualizar localStorage
+      setLocalLock(jug.premio,jug.usuarioReal);
+      noticeEl.textContent=`🕯️ Ya jugaste hoy como ${jug.usuarioReal}. Volvé mañana.`; return;
+    } else {
+      // Nube dice libre → limpiar localStorage por si el admin reseteó
+      try{ localStorage.removeItem(LOCK_KEY()); }catch{}
+    }
+  }catch(e){
+    // Si falla la nube, usar localStorage como fallback
+    const lk=readLocalLock();
+    if(lk){ noticeEl.textContent=`🕯️ Ya jugaste hoy (${lk.prize||'—'}). Volvé mañana.`; return; }
+  }
 
   username=n;
   document.getElementById('who').textContent=username;

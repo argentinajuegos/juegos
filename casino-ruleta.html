@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -502,9 +501,13 @@ function angleForIdx(idx) {
 }
 
 async function doSpin() {
+  // Bloqueo triple: flag, botón y premioYaJugado
   if(isSpinning || premioYaJugado) return;
   isSpinning = true;
+  // Remover listener para que NO se pueda volver a llamar nunca
+  $('spinBtn').removeEventListener('click', doSpin);
   $('spinBtn').disabled = true;
+  $('spinBtn').style.opacity = '0.3';
 
   const selectedIdx = pickPremio();
   const target = angleForIdx(selectedIdx);
@@ -558,12 +561,17 @@ async function doSpin() {
   const msg = `Hola! Soy el usuario ${username}. Gané ${premio.label} en la RULETA de ${CASINO_NOMBRE}. Quiero reclamar mi premio.`;
   $('waReclamar').href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
 
-  await registrarGiro(username, fingerprint, premio.label);
-  setPlayed(username, fingerprint);
+  // Registrar PRIMERO antes de mostrar resultado
   premioYaJugado = premio.label;
+  setPlayed(username, fingerprint);
+  await registrarGiro(username, fingerprint, premio.label);
 
   if(premio.prob > 0) launchConfetti();
   isSpinning = false;
+  // Botón queda PERMANENTEMENTE deshabilitado — ya jugó hoy
+  $('spinBtn').disabled = true;
+  $('spinBtn').style.opacity = '0.3';
+  $('spinBtn').textContent = '✅ Ya giraste hoy';
 }
 
 // ════════════════════════════════════════════════════
@@ -634,6 +642,9 @@ async function startGame() {
     const premio = yaJugo?.premio || '—';
     premioYaJugado = premio;
     $('spinBtn').disabled = true;
+    $('spinBtn').style.opacity = '0.3';
+    $('spinBtn').textContent = '✅ Ya giraste hoy';
+    $('spinBtn').removeEventListener('click', doSpin);
     $('resultText').textContent = `Ya jugaste hoy. Resultado: ${premio}`;
     const rb = $('resultBox');
     rb.style.display = 'block';

@@ -528,11 +528,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const promReg=fetchUltimoDeHoy(phone,fp);
       const reg=await Promise.race([promReg, new Promise(res=>setTimeout(()=>res(null),1200))]);
 
-      if (isLocalPlayed(phone,fp)||reg) {
-        $('#msg').innerHTML=textoYaJugo(phone, reg||{usuario:phone,premio:'—'});
+      if (reg) {
+        // Nube confirma → actualizar localStorage
+        localStorage.setItem(localBlockKeyUser(phone,fp),'1');
+        localStorage.setItem(localBlockKeyDevice(fp),'1');
+        $('#msg').innerHTML=textoYaJugo(phone, reg);
         $('#foil').style.pointerEvents='none';
-        // No llamar iniciarJuego para no mostrar ticket
         return;
+      } else if (isLocalPlayed(phone,fp)) {
+        // localStorage dice jugó pero nube dice libre → admin reseteó
+        localStorage.removeItem(localBlockKeyUser(phone,fp));
+        localStorage.removeItem(localBlockKeyDevice(fp));
       }
 
       (async()=>{

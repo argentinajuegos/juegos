@@ -392,7 +392,15 @@ async function iniciarJuego() {
   mostrarCara(null);
   actualizarHora();
 
-  const jugo = isPlayed(usuario,fingerprint) || await checkYaJugo(usuario,fingerprint);
+  // Nube primero → si libre limpiar localStorage
+  const jugoNube = await checkYaJugo(usuario,fingerprint);
+  if(jugoNube){
+    setPlayed(usuario,fingerprint); // confirmar en local
+  } else if(isPlayed(usuario,fingerprint)){
+    // Admin reseteó → limpiar
+    localStorage.removeItem(blockKey(usuario,fingerprint));
+  }
+  const jugo = jugoNube;
   const btn=document.getElementById('tirar-btn');
   const msg=document.getElementById('mensaje-premio');
   const btnWsp=document.getElementById('btn-wsp');

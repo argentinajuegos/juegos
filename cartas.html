@@ -415,13 +415,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     showGame();
     renderPrizeBar(); renderGrid(buildDeck());
 
-    if(isLocalPlayed(phone, fp)){
-      setTimeout(()=>{ document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled')); endGame(false,'',{blocked:true}); },120);
-      return;
-    }
     const reg = await fetchUltimoDeHoy(phone, fp);
     if(reg){
+      // Nube confirma → actualizar localStorage
+      localStorage.setItem(localBlockKeyUser(phone,fp),'1');
+      localStorage.setItem(localBlockKeyDevice(fp),'1');
       setTimeout(()=>{ document.querySelectorAll('.card').forEach(c=>c.classList.add('disabled')); endGame(false,'',{blocked:true}); },120);
+    } else {
+      // Nube dice libre → limpiar localStorage (admin reseteó)
+      localStorage.removeItem(localBlockKeyUser(phone,fp));
+      localStorage.removeItem(localBlockKeyDevice(fp));
     }
   });
 

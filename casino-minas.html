@@ -644,6 +644,8 @@ function blockToday(premioText, userPlayed) {
   $('#modal-close').textContent='OK';
   $('#modal-close').onclick=()=>{
     overlay.style.display='none';
+    // Volver a P1 para que no pueda jugar
+    go(P1);
     const note=$('#today-note');
     if(note){note.style.display='block';note.innerHTML=`📒 Ya jugaste hoy: <b>${jugoComo}</b> — <b>${premioTxt}</b>`;}
   };
@@ -712,18 +714,32 @@ $('#btn-continuar').addEventListener('click', async()=>{
   if(!name){ $('#input-user').classList.add('error'); return; }
   $('#input-user').classList.remove('error');
   usuario=name;
-  $('#hud-user').textContent=usuario;
-  startClock(); go(P2); initGame();
 
-  // Bloqueo local
-  const lk=readLocalLock();
-  if(lk){ blockToday(lk.prize,lk.user); return; }
-
-  // Nube
+  // Verificar nube PRIMERO — reset del admin tiene efecto inmediato
   try {
     const jug=await checkYaJugo(usuario,fingerprint);
-    if(jug){ blockToday(jug.premio,jug.usuarioReal); return; }
-  }catch(e){console.warn(e);}
+    if(jug){
+      setLocalLock(jug.premio,jug.usuarioReal);
+      // Mostrar bloqueo SIN ir a P2
+      $('#hud-user').textContent=usuario;
+      startClock(); go(P2); initGame();
+      blockToday(jug.premio,jug.usuarioReal); return;
+    } else {
+      try{ localStorage.removeItem(LOCK_KEY()); }catch{}
+    }
+  }catch(e){
+    // Fallback localStorage
+    const lk=readLocalLock();
+    if(lk){
+      $('#hud-user').textContent=usuario;
+      startClock(); go(P2); initGame();
+      blockToday(lk.prize,lk.user); return;
+    }
+  }
+
+  // No está bloqueado — ir al juego
+  $('#hud-user').textContent=usuario;
+  startClock(); go(P2); initGame();
 });
 
 function initGame(){ fillSelect(); applyMines(); resetBoard(); }

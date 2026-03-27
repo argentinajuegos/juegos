@@ -391,9 +391,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
     ultimoHoy=await fetchUltimoDeHoy(phone,fp);
     $('#welcome').style.display='none'; $('#headerGame').style.display='block'; $('#game').style.display='block';
-    if(localStorage.getItem(blockKeyUser(phone,fp))||localStorage.getItem(blockKeyDev(fp))||ultimoHoy){
+    if(ultimoHoy){
+      // Nube confirma que jugó → actualizar localStorage
+      localStorage.setItem(blockKeyUser(phone,fp),'1');
+      localStorage.setItem(blockKeyDev(fp),'1');
       setMsg(textoYaJugo(phone,ultimoHoy)); $('#spin').disabled=true;
     } else {
+      // Nube dice libre → limpiar localStorage por si el admin reseteó
+      localStorage.removeItem(blockKeyUser(phone,fp));
+      localStorage.removeItem(blockKeyDev(fp));
       setMsg('Listo, tocá <strong>Girar</strong>.');
     }
     drawWheel();

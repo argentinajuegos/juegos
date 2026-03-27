@@ -518,13 +518,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     fp=await deviceFingerprint();
     $('#statusNumber').textContent=`👤 Número: ${phone}`; tickClock();
 
-    if(isLocalPlayed(phone,fp)){
+    const last=await fetchUltimoDeHoy(phone,fp);
+    if(last){
+      // Nube confirma → actualizar localStorage
+      localStorage.setItem(localBlockKeyUser(phone,fp),'1');
+      localStorage.setItem(localBlockKeyDevice(fp),'1');
       $('#welcome').style.display='none'; $('#game').style.display='block';
       $('#stepSelect').style.display='none'; $('#stepPlay').style.display='block';
       $('#btnStart').disabled=true;
-      const last=await fetchUltimoDeHoy(phone,fp);
       showResult('✅ Ya jugaste hoy',`Jugaste como <strong>${phone}</strong> y tu último premio fue <strong>${last?.premio||money(0)}</strong>.<br>Volvé mañana.`,0);
       return;
+    } else if(isLocalPlayed(phone,fp)){
+      // localStorage dice jugó pero nube dice libre → admin reseteó
+      localStorage.removeItem(localBlockKeyUser(phone,fp));
+      localStorage.removeItem(localBlockKeyDevice(fp));
     }
 
     tickets4=Array.from({length:4},makeTicket);

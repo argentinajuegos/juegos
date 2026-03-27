@@ -405,9 +405,11 @@ async function startGame() {
   renderPrizesGrid('prizesGridGame');
   loadCards();
 
-  // Verificar bloqueo
+  // Verificar nube PRIMERO — reset del admin tiene efecto inmediato
   const yaJugo=await checkYaJugo(username,fingerprint);
-  if(isPlayed(username,fingerprint)||yaJugo){
+  if(yaJugo){
+    // Nube confirma → actualizar localStorage
+    setPlayed(username,fingerprint);
     const premio=yaJugo?.premio||'—';
     document.querySelectorAll('.card').forEach(c=>{ c.classList.add('disabled'); c.onclick=null; });
     $('resultTitle').textContent='✅ Ya jugaste hoy';
@@ -415,6 +417,10 @@ async function startGame() {
     $('resultBox').style.display='block';
     const msg=`Hola! Soy el usuario ${username}. Ya jugué hoy en ${CASINO_NOMBRE}.`;
     $('waReclamar').href=`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`;
+  } else if(isPlayed(username,fingerprint)){
+    // localStorage dice jugó pero nube dice libre (admin reseteó) → limpiar
+    localStorage.removeItem(blockKeyUser(username,fingerprint));
+    localStorage.removeItem(blockKeyDev(fingerprint));
   }
 }
 
